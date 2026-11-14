@@ -87,4 +87,4 @@ Auto-zoom is dropped (Never, 2026-11-13). Cursor data is still recorded, because
 
 ## Next step
 
-The MVP, light mode and video shape are done. **P1 Capture is built (2026-11-13) and waiting for Mari to try a real recording** (screen recording permission is needed, and the terminal couldn't test it). After her sign-off: P2 Cursor, which draws the pointer from the log P1 saves.
+The MVP, light mode and video shape are done. **P1 Capture is signed off (2026-11-14)** after Mari's real recordings and two feedback rounds. Next: P2 Cursor, which draws the pointer from the log P1 saves.
