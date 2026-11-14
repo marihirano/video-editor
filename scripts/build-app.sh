@@ -24,8 +24,11 @@ source scripts/signing.sh
 if [[ -n "$SIGN_IDENTITY" ]] && codesign --force --sign "$SIGN_IDENTITY" --identifier com.marihirano.video-editor "$APP"; then
     echo "Signed with a stable certificate ($SIGN_IDENTITY)."
 else
-    codesign --force --sign - "$APP"
-    echo "Signed ad-hoc (screen recording permission will be asked again after each build)."
+    # Ad-hoc, but told to be recognised by its bundle id rather than by this exact build's
+    # fingerprint, so macOS keeps the screen recording permission across rebuilds.
+    codesign --force --sign - --identifier com.marihirano.video-editor \
+        -r='designated => identifier "com.marihirano.video-editor"' "$APP"
+    echo "Signed ad-hoc, recognised by its bundle id (permission should survive rebuilds)."
 fi
 
 # Tell Finder about the app's file types (project packages).
