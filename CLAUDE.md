@@ -190,7 +190,7 @@ Newest first. Each entry: date, decision, reason.
 
 Newest first. One or two lines per session.
 
-- **2026-11-14** — Style panel split into General / Cursor tabs from Mari's mockups; "Reset cursor style" pinned at the bottom. Builds; snapshots of both tabs (dark, light) checked. Committed; not pushed.
+- **2026-11-14** — Style panel split into General / Cursor tabs from Mari's mockups; "Reset cursor style" pinned at the bottom; Style label restyled. Snapshots checked. P2 and the tabs pushed to GitHub (Mari approved).
 - **2026-11-14** — Built P2 Cursor: cursor look in the project, smoothed path, idle fade, press, click effects, motion blur, 11 original cursor pictures, drawing in the shared shader (follows crop, zoom, cuts, speed), Cursor section in the Style panel. 28 new checks incl. real exports through crop and zoom; all checks pass; app rebuilt; panel snapshots (light/dark) and debug-exported frames of Mari's recording checked. Committed; not pushed.
 
 - **2026-11-14** — Area flow: straight to recording after drawing, control under the area (then centred). Builds; committed; not pushed.
