@@ -7,7 +7,9 @@ struct CursorSection: View {
     private var look: CursorLook { model.project?.cursorLook ?? CursorLook() }
 
     var body: some View {
-        PanelSection("Style") {
+        VStack(alignment: .leading, spacing: Theme.s4) {
+            VStack(alignment: .leading, spacing: Theme.s2) {
+            Text("Style").font(Theme.fontCallout).foregroundStyle(Theme.secondaryText)
             ChoiceButtons(choices: CursorLook.Style.allCases, isSelected: { look.style == $0 },
                           label: { s in
                               switch s {
@@ -16,6 +18,7 @@ struct CursorSection: View {
                               case .dot: "Dot"
                               }
                           }) { s in model.updateCursorLook { $0.style = s } }
+            }
             SliderRow(title: "Size", valueText: "\(Int((look.size * 100).rounded()))%",
                       value: binding(\.size), range: Settings.cursorSizeRange)
             SliderRow(title: "Smoothing", valueText: "\(Int((look.smoothing * 100).rounded()))%",
