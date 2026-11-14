@@ -5,6 +5,7 @@ import SwiftUI
 struct VideoEditorApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var model = EditorModel.shared
+    @StateObject private var recorder = RecordingController.shared
     @AppStorage(Theme.appearanceKey) private var appearance = Theme.AppearanceMode.system.rawValue
 
     init() { Theme.registerFonts() }
@@ -14,6 +15,7 @@ struct VideoEditorApp: App {
             ContentView()
                 .environmentObject(model)
                 .environmentObject(model.playback)
+                .environmentObject(recorder)
                 .frame(minWidth: 720, minHeight: 480)
                 .onAppear { Theme.AppearanceMode.apply(appearance) }
                 .onChange(of: appearance) { Theme.AppearanceMode.apply(appearance) }
@@ -22,7 +24,7 @@ struct VideoEditorApp: App {
         }
         .defaultSize(width: 1200, height: 780)
         .windowToolbarStyle(.unified(showsTitle: false))
-        .commands { AppMenus(model: model) }
+        .commands { AppMenus(model: model, recorder: recorder) }
     }
 }
 
@@ -31,7 +33,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.regular)
         NSApp.activate(ignoringOtherApps: true)
-        Task { @MainActor in DebugSnapshot.runIfRequested() }
+        Task { @MainActor in
+            RecordingController.shared.registerHotKey()
+            DebugSnapshot.runIfRequested()
+        }
     }
 
     func application(_ application: NSApplication, open urls: [URL]) {

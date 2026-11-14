@@ -4,6 +4,7 @@ import SwiftUI
 /// The menu bar: File (open, save, export), Edit (undo, split, delete, tools), View, Playback.
 struct AppMenus: Commands {
     @ObservedObject var model: EditorModel
+    @ObservedObject var recorder: RecordingController
     @AppStorage("showInspector") private var showInspector = true
     @AppStorage(Theme.appearanceKey) private var appearance = Theme.AppearanceMode.system.rawValue
 
@@ -13,6 +14,14 @@ struct AppMenus: Commands {
         CommandGroup(replacing: .newItem) {
             Button("Open…") { Task { await model.showOpenPanel() } }
                 .keyboardShortcut("o")
+            Divider()
+            Button("New Recording…") { recorder.showSetup() }
+                .keyboardShortcut("r")
+                .disabled(recorder.isBusy)
+            Button(recorder.phase == .paused ? "Resume Recording" : "Pause Recording") { recorder.togglePause() }
+                .disabled(recorder.phase != .recording && recorder.phase != .paused)
+            Button("Stop Recording  (\(GlobalHotKey.label))") { recorder.stop() }
+                .disabled(recorder.phase != .recording && recorder.phase != .paused)
         }
         CommandGroup(replacing: .saveItem) {
             Button("Save Project") { model.save() }

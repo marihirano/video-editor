@@ -284,18 +284,3 @@ public struct FrameStyle: Codable, Equatable, Sendable {
         shadowOffset = try c.decodeIfPresent(Double.self, forKey: .shadowOffset) ?? d.shadowOffset
     }
 }
-
-/// Empty slot for phase 2's cursor data.
-public struct CursorTrack: Codable, Equatable, Sendable {
-    public var samples: [CursorSample] = []
-    public var clicks: [CursorClick] = []
-    public init() {}
-}
-
-public struct CursorSample: Codable, Equatable, Sendable {
-    public var time: Double, x: Double, y: Double
-}
-
-public struct CursorClick: Codable, Equatable, Sendable {
-    public var time: Double, x: Double, y: Double
-}

@@ -18,8 +18,15 @@ cp Resources/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 # The interface font (Inter, with its licence)
 cp -R Resources/Fonts "$APP/Contents/Resources/Fonts"
 
-# Ad-hoc signature: enough to run on this Mac (no Apple developer account needed).
-codesign --force --sign - "$APP"
+# Sign with the app's own stable certificate (see signing.sh), so the screen recording permission
+# survives rebuilds. Falls back to an ad-hoc signature (permission asked again after each build).
+source scripts/signing.sh
+if [[ -n "$SIGN_IDENTITY" ]] && codesign --force --sign "$SIGN_IDENTITY" --identifier com.marihirano.video-editor "$APP"; then
+    echo "Signed with a stable certificate ($SIGN_IDENTITY)."
+else
+    codesign --force --sign - "$APP"
+    echo "Signed ad-hoc (screen recording permission will be asked again after each build)."
+fi
 
 # Tell Finder about the app's file types (project packages).
 /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f "$APP" || true

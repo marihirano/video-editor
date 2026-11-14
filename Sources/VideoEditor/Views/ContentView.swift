@@ -6,6 +6,7 @@ import SwiftUI
 /// and the timeline underneath across the whole width of the window.
 struct ContentView: View {
     @EnvironmentObject private var model: EditorModel
+    @EnvironmentObject private var recorder: RecordingController
     @State private var isDropTargeted = false
     @AppStorage("showInspector") private var showInspector = true
 
@@ -54,6 +55,7 @@ struct ContentView: View {
         .sheet(isPresented: Binding(get: { model.export != nil }, set: { if !$0 { model.dismissExport() } })) {
             ExportSheet()
         }
+        .sheet(isPresented: $recorder.setupShown) { RecordSheet() }
         .alert("Something went wrong", isPresented: Binding(get: { model.errorMessage != nil },
                                                             set: { if !$0 { model.errorMessage = nil } })) {
             Button("OK") { model.errorMessage = nil }

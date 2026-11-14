@@ -173,6 +173,30 @@ public enum Settings {
     public static let exportKeyframeIntervalSeconds: Double = 2
     /// Try the Apple-silicon hardware encoder first; fall back to software only if it refuses.
     public static let exportRequireHardwareEncoder = true
+
+    // MARK: Recording (phase 2, P1)
+    /// Seconds counted down (3, 2, 1) before recording starts.
+    public static let recordingCountdownSeconds = 3
+    /// Frames per second the screen is captured at (fewer when nothing on screen changes).
+    public static let recordingFPS = 60
+    /// Recording bitrate: bits per second per megapixel of the video (HEVC, hardware encoder).
+    /// A Retina 3024×1964 recording gets about 36 Mbit/s; screen content compresses well.
+    public static let recordingBitsPerMegapixel = 6_000_000.0
+    /// The video is written in pieces this long (seconds), so a crash keeps everything but the last piece.
+    public static let recordingFragmentSeconds = 2.0
+    /// How often the cursor is looked at (times per second). Positions are only kept when it moves.
+    public static let cursorPollHz = 120.0
+    /// A new cursor position is kept only after moving at least this far (video pixels).
+    public static let cursorMinMovePixels = 0.5
+    /// How often the cursor's shape (arrow, I-beam…) is checked (times per second).
+    public static let cursorShapePollHz = 20.0
+    /// The smallest area that can be recorded (points per side).
+    public static let recordingMinAreaPoints = 64.0
+    /// Folder (inside ~/Movies) where recordings and their projects are saved.
+    public static let recordingsFolderName = "Video Editor"
+    /// Hide desktop icons while recording, unless switched off.
+    public static let defaultHideDesktopIcons = true
+
 }
 
 public struct GradientPreset: Sendable {

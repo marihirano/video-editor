@@ -42,13 +42,27 @@ enum DebugSnapshot {
                 model.setOutput { $0.format = format == "gif" ? .gif : .mp4 }
                 model.startExport()
             }
-            let busy = env["VET_SNAPSHOT_ZOOM"] != nil || env["VET_SNAPSHOT_CROP"] != nil || env["VET_SNAPSHOT_EXPORT"] != nil
+            // VET_SNAPSHOT_RECORD=display|window|area opens the Record window on that choice (`…-sheet.png`)
+            // and shows the floating recording control (`…-panel.png`) as if recording for 12 s.
+            var panelView: NSView?
+            if let kind = env["VET_SNAPSHOT_RECORD"] {
+                let rec = RecordingController.shared
+                rec.kind = RecordingController.Kind(rawValue: kind) ?? .display
+                if rec.kind == .area { rec.area = (CGMainDisplayID(), CGRect(x: 200, y: 150, width: 1280, height: 720)) }
+                rec.showSetup()
+                panelView = rec.debugControlPanelView()
+            }
+            let busy = env["VET_SNAPSHOT_ZOOM"] != nil || env["VET_SNAPSHOT_CROP"] != nil || env["VET_SNAPSHOT_EXPORT"] != nil || env["VET_SNAPSHOT_RECORD"] != nil
             if !busy { model.playback.play() }
-            DispatchQueue.main.asyncAfter(deadline: .now() + (env["VET_SNAPSHOT_EXPORT"] != nil ? 5 : 1)) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + (env["VET_SNAPSHOT_EXPORT"] != nil || env["VET_SNAPSHOT_RECORD"] != nil ? 5 : 1)) {
                 if let sheet = NSApp.windows.first(where: { $0.isSheet && $0.isVisible })?.contentView?.superview,
                    let rep = sheet.bitmapImageRepForCachingDisplay(in: sheet.bounds) {
                     sheet.cacheDisplay(in: sheet.bounds, to: rep)
                     try? rep.representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: path + "-sheet.png"))
+                }
+                if let v = panelView, let rep = v.bitmapImageRepForCachingDisplay(in: v.bounds) {
+                    v.cacheDisplay(in: v.bounds, to: rep)
+                    try? rep.representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: path + "-panel.png"))
                 }
                 // The window content, plus the top bar on its own (`…-top.png`).
                 let content = NSApp.windows.first(where: { $0.isVisible && !$0.isSheet })?.contentView

@@ -531,6 +531,124 @@ do {
     }
 }
 
+print("Capture (P1)")
+do {
+    func near(_ a: CGPoint, _ x: Double, _ y: Double) -> Bool { abs(a.x - x) < 1e-6 && abs(a.y - y) < 1e-6 }
+    // Retina main display, 1512×982 points at 2×.
+    let retina = CaptureGeometry(frame: CGRect(x: 0, y: 0, width: 1512, height: 982), scale: 2)
+    check(retina.pixelSize == (3024, 1964), "Retina display records at 3024×1964 pixels")
+    check(near(retina.pixel(fromGlobal: CGPoint(x: 756, y: 491)), 1512, 982), "Retina: middle of the screen → middle of the video")
+    check(near(retina.pixel(fromGlobal: CGPoint(x: 1512, y: 982)), 3024, 1964), "Retina: far corner → far corner of the video")
+    // A 1× display to the left of and above the main one (negative offsets).
+    let left = CaptureGeometry(frame: CGRect(x: -1920, y: -200, width: 1920, height: 1080), scale: 1)
+    check(near(left.pixel(fromGlobal: CGPoint(x: -960, y: 340)), 960, 540), "display left of and above the main one: offsets removed")
+    check(left.pixel(fromGlobal: CGPoint(x: 10, y: 10)).x > 1920, "cursor on another display lands outside the video (kept, not clipped)")
+    // An area drawn on a second Retina display placed right of the main one.
+    let second = CGRect(x: 1512, y: 0, width: 1728, height: 1117)
+    let areaLocal = CGRect(x: 100, y: 50, width: 400, height: 300)
+    let areaGlobal = CaptureGeometry.globalRect(areaLocal, onDisplayAt: second)
+    check(areaGlobal == CGRect(x: 1612, y: 50, width: 400, height: 300), "area on a second display → global position")
+    let area = CaptureGeometry(frame: areaGlobal, scale: 2)
+    check(area.pixelSize == (800, 600) && near(area.pixel(fromGlobal: CGPoint(x: 1812, y: 200)), 400, 300),
+          "area capture: positions relative to the area, in Retina pixels")
+    // Window capture: same maths with the window's frame.
+    let win = CaptureGeometry(frame: CGRect(x: 200.5, y: 120, width: 801, height: 600.5), scale: 2)
+    check(win.pixelSize.width % 2 == 0 && win.pixelSize.height % 2 == 0, "window sizes round to even pixels (\(win.pixelSize.width)×\(win.pixelSize.height))")
+    check(near(win.pixel(fromGlobal: CGPoint(x: 200.5, y: 120)), 0, 0), "window: its top-left corner is pixel 0,0")
+    // AppKit's bottom-left coordinates.
+    check(near(CaptureGeometry.globalPoint(fromAppKit: CGPoint(x: 10, y: 900), mainDisplayHeight: 982), 10, 82),
+          "AppKit (bottom-left) point → top-left screen point")
+    check(CaptureGeometry.globalRect(fromAppKit: CGRect(x: 0, y: 882, width: 100, height: 100), mainDisplayHeight: 982)
+          == CGRect(x: 0, y: 0, width: 100, height: 100), "AppKit rect → top-left screen rect")
+    let clamped = CaptureGeometry.clampArea(CGRect(x: 1400, y: -20, width: 300, height: 200.3),
+                                            to: CGRect(x: 0, y: 0, width: 1512, height: 982), scale: 2, minimumPoints: 64)
+    check(clamped == CGRect(x: 1400, y: 0, width: 112, height: 180.5), "an area hanging off the display is trimmed to it (\(clamped))")
+    let tiny = CaptureGeometry.clampArea(CGRect(x: 1500, y: 970, width: 5, height: 5),
+                                         to: CGRect(x: 0, y: 0, width: 1512, height: 982), scale: 2, minimumPoints: 64)
+    check(tiny.width == 64 && tiny.maxX <= 1512 && tiny.maxY <= 982, "a too-small area grows to the minimum and stays on the display")
+
+    // Clock: pauses are cut out of both the video and the cursor log.
+    var clock = CaptureClock()
+    check(clock.videoTime(5) == nil, "no cursor times before the first frame")
+    clock.begin(at: 100)
+    check(clock.videoTime(101.5) == 1.5, "video time counts from the first frame")
+    clock.pause(at: 102)
+    check(clock.videoTime(103) == nil && clock.elapsed(104) == 2, "paused: nothing logged, timer stops")
+    clock.resume(at: 105)
+    check(clock.videoTime(106) == 3 && clock.elapsed(106) == 3, "after resuming, the pause is removed from the clock")
+
+    // Cursor log.
+    let info = CaptureInfo(kind: .area, width: 800, height: 600, scale: 2, frame: areaGlobal, name: "Area")
+    var log = CursorLogBuilder(geometry: area, info: info)
+    log.observe(videoTime: nil, global: CGPoint(x: 1700, y: 100), buttons: [], shape: .arrow)
+    log.observe(videoTime: 0, global: CGPoint(x: 1612, y: 50), buttons: [], shape: .arrow)
+    log.observe(videoTime: 0.01, global: CGPoint(x: 1612, y: 50), buttons: [], shape: .arrow)        // didn't move
+    log.observe(videoTime: 0.02, global: CGPoint(x: 1662, y: 100), buttons: [.left], shape: .pointingHand)
+    log.observe(videoTime: 0.03, global: CGPoint(x: 1662, y: 100), buttons: [.left], shape: .pointingHand)
+    log.observe(videoTime: 0.05, global: CGPoint(x: 1662, y: 100), buttons: [], shape: .iBeam)
+    log.observe(videoTime: 0.06, global: CGPoint(x: 1663, y: 100), buttons: [.right], shape: .iBeam)
+    log.finish(at: 0.1)
+    let t = log.track
+    check(t.samples.count == 3 && t.samples[0] == CursorSample(time: 0, x: 0, y: 0) && t.samples[1] == CursorSample(time: 0.02, x: 100, y: 100),
+          "samples only when the cursor moves, in video pixels (\(t.samples.count) samples)")
+    check(t.clicks.map(\.phase) == [.down, .up, .down, .up] && t.clicks.map(\.button) == [.left, .left, .right, .right]
+          && t.clicks[1].time == 0.05 && t.clicks[3].time == 0.1,
+          "clicks: left down/up, right down, and a release added when recording stops")
+    check(t.shapes.map(\.shape) == [.arrow, .pointingHand, .iBeam] && t.shapes[0].time == 0, "cursor shape changes, first one at 0 s")
+    check(t.shape(at: 0.03) == .pointingHand && t.shape(at: 0.5) == .iBeam, "shape at a given moment")
+
+    // Save and reopen with cursor data; older slots still open.
+    let source = tmp.appendingPathComponent("rec.mov")
+    try Data("x".utf8).write(to: source)
+    var proj = Project(source: SourceVideo(path: source.path, width: 800, height: 600, duration: 0.1))
+    proj.cursor = t
+    let package = tmp.appendingPathComponent("Recording.\(Settings.projectExtension)")
+    try ProjectStore.save(proj, sourceURL: source, to: package)
+    let (reopened, _) = try ProjectStore.load(from: package)
+    check(reopened.cursor == t && reopened.cursor.capture?.kind == .area && reopened.cursor.capture?.scale == 2,
+          "cursor log survives save and reopen")
+    let m1 = #"{"source":{"path":"/x.mov","width":10,"height":10,"duration":1},"cursor":{"samples":[],"clicks":[]}}"#
+    let old = try JSONDecoder().decode(Project.self, from: Data(m1.utf8))
+    check(old.cursor.isEmpty && old.cursor.capture == nil && old.cursor.shapes.isEmpty, "projects from before P1 open with an empty cursor slot")
+    let oddClick = #"{"samples":[{"time":0,"x":1,"y":2}],"clicks":[{"time":1,"x":1,"y":2}],"shapes":[{"time":0,"shape":"someNewCursor"}]}"#
+    let odd = try JSONDecoder().decode(CursorTrack.self, from: Data(oddClick.utf8))
+    check(odd.clicks.first?.button == .left && odd.clicks.first?.phase == .down && odd.shapes.first?.shape == .other,
+          "clicks without a button read as left-down; unknown cursor names read as 'other'")
+    check(Project(source: SourceVideo(path: "/x.mov", width: 1, height: 1, duration: 1)).cursor.isEmpty, "imported videos have an empty cursor slot")
+
+    // The recording format: HEVC in short pieces, readable even if the app never finishes the file (a crash).
+    let partial = tmp.appendingPathComponent("partial.mov")
+    let writer = try AVAssetWriter(outputURL: partial, fileType: .mov)
+    writer.movieFragmentInterval = CMTime(seconds: Settings.recordingFragmentSeconds, preferredTimescale: 600)
+    let input = AVAssetWriterInput(mediaType: .video, outputSettings: ScreenRecorder.videoSettings(width: 640, height: 400))
+    input.expectsMediaDataInRealTime = true
+    let adaptor = AVAssetWriterInputPixelBufferAdaptor(assetWriterInput: input, sourcePixelBufferAttributes: [
+        kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA, kCVPixelBufferWidthKey as String: 640, kCVPixelBufferHeightKey as String: 400])
+    writer.add(input)
+    check(writer.startWriting(), "HEVC recording writer starts")
+    writer.startSession(atSourceTime: .zero)
+    for i in 0..<(30 * 7) {   // 7 s at 30 fps
+        while !input.isReadyForMoreMediaData { try await Task.sleep(nanoseconds: 2_000_000) }
+        var pb: CVPixelBuffer?
+        CVPixelBufferPoolCreatePixelBuffer(nil, adaptor.pixelBufferPool!, &pb)
+        if let pb {
+            CVPixelBufferLockBaseAddress(pb, [])
+            memset(CVPixelBufferGetBaseAddress(pb), Int32(i % 255), CVPixelBufferGetDataSize(pb))
+            CVPixelBufferUnlockBaseAddress(pb, [])
+            adaptor.append(pb, withPresentationTime: CMTime(value: CMTimeValue(i), timescale: 30))
+        }
+    }
+    try await Task.sleep(nanoseconds: 700_000_000)
+    let copy = tmp.appendingPathComponent("crashed.mov")
+    try FileManager.default.copyItem(at: partial, to: copy)   // the file as it is on disk mid-recording
+    let crashed = try? await VideoInfo.load(copy)
+    check((crashed?.duration ?? 0) >= 4, String(format: "unfinished recording still opens (%.1f of 7 s kept)", crashed?.duration ?? 0))
+    input.markAsFinished(); writer.endSession(atSourceTime: CMTime(value: 210, timescale: 30))
+    await writer.finishWriting()
+    let done = try? await VideoInfo.load(partial)
+    check(writer.status == .completed && abs((done?.duration ?? 0) - 7) < 0.05 && done?.width == 640, "finished recording is 7 s, 640×400")
+}
+
 // Speed test, only when asked: VET_PERF=1 swift run -c release CoreChecks (makes a 4K, 30 s test recording).
 if ProcessInfo.processInfo.environment["VET_PERF"] != nil {
     print("Speed")

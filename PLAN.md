@@ -77,7 +77,9 @@ The whole pipeline, end to end, as plainly as possible.
 
 Before starting: install Xcode (free, from the App Store).
 
-- **P1. Capture:** record a display, window or area; countdown; global shortcut; pause and resume; hide desktop icons; save the cursor and click log into the project's cursor slot
+- **P1. Capture (built 2026-11-13, waiting for Mari's review):** record a display, window or area; countdown; global shortcut (⌥⇧⌘R); pause and resume; hide desktop icons; save the cursor and click log into the project's cursor slot
+
+  **Try it:** File › New Recording…, allow screen recording, record a minute of real work with clicks and typing, pause once, stop with ⌥⇧⌘R. The recording should open in the editor with no system pointer in the video.
 - **P2. Cursor:** draw the cursor from the log: smoothing, size, style, sharp cursor images, motion blur, click effects, idle hide
 - **P3. Tuning:** rounds on real recordings until capture and the cursor feel right
 
@@ -85,4 +87,4 @@ Auto-zoom is dropped (Never, 2026-11-13). Cursor data is still recorded, because
 
 ## Next step
 
-The MVP (M1–M5) is done and signed off (2026-11-12); light mode is done (2026-11-13). Video shape (16:9 / 1:1 / 9:16) is built and waiting for Mari's review (2026-11-13): the shape is the dropdown button above the preview. After her sign-off: P1 (capture; Xcode 27.2 is installed and licensed).
+The MVP, light mode and video shape are done. **P1 Capture is built (2026-11-13) and waiting for Mari to try a real recording** (screen recording permission is needed, and the terminal couldn't test it). After her sign-off: P2 Cursor, which draws the pointer from the log P1 saves.
