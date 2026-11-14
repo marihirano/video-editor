@@ -47,7 +47,11 @@ final class RecordingController: ObservableObject {
     private let picker = AreaPicker()
     private lazy var hotKey = GlobalHotKey { [weak self] in self?.hotKeyPressed() }
 
-    var isBusy: Bool { phase != .idle }
+    var isBusy: Bool { phase != .idle || pickingArea }
+    /// The area picker is up (the editor is hidden then, so the app mustn't quit).
+    private var pickingArea = false
+    /// Editor windows the area picker already hid, handed to the recording to bring back afterwards.
+    private var alreadyHidden: [NSWindow]?
 
     func registerHotKey() { hotKey.register() }
 
@@ -95,11 +99,20 @@ final class RecordingController: ObservableObject {
         setupShown = false
         let shown = visibleMainWindows()
         shown.forEach { $0.orderOut(nil) }
+        pickingArea = true
         picker.run { [weak self] result in
             guard let self else { return }
-            if let result { area = (result.0, result.1); kind = .area }
-            shown.forEach { $0.makeKeyAndOrderFront(nil) }
-            setupShown = true
+            pickingArea = false
+            guard let result else {                       // Esc: back to the Record window
+                shown.forEach { $0.makeKeyAndOrderFront(nil) }
+                setupShown = true
+                return
+            }
+            // Straight into recording (Mari): no trip back to the Record window.
+            area = (result.0, result.1); kind = .area
+            alreadyHidden = shown
+            start()
+            if phase == .idle { alreadyHidden = nil; shown.forEach { $0.makeKeyAndOrderFront(nil) }; setupShown = true }
         }
     }
 
@@ -181,14 +194,21 @@ final class RecordingController: ObservableObject {
         self.highlight = highlight
 
         let panel = RecordingControlPanel(controller: self)
-        panel.show(on: screen)
+        if kind == .area, let a = area, let s = NSScreen.with(displayID: a.display) {
+            // Right under the area, lined up with its right edge (Mari's wireframe).
+            let f = s.frame
+            panel.show(below: NSRect(x: f.minX + a.rect.minX, y: f.maxY - a.rect.maxY, width: a.rect.width, height: a.rect.height), on: s)
+        } else {
+            panel.show(on: screen)
+        }
         self.panel = panel
 
         let seconds = Settings.recordingCountdownSeconds
         phase = .countdown(seconds)   // set before hiding the editor, so the app doesn't quit with no window showing
         skipRequested = false
         // Out of the way: this app's windows aren't recorded anyway, but they'd cover what is.
-        hiddenWindows = visibleMainWindows()
+        hiddenWindows = (alreadyHidden ?? []) + visibleMainWindows()
+        alreadyHidden = nil
         hiddenWindows.forEach { $0.orderOut(nil) }
         let overlay = CountdownOverlay()
         if seconds > 0, let screen {

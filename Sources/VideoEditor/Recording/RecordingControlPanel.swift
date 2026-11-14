@@ -34,6 +34,20 @@ final class RecordingControlPanel {
         panel.orderFrontRegardless()
     }
 
+    /// Just below an area (AppKit coordinates), lined up with its right edge. If there's no room below,
+    /// it goes just above; if there's no room there either, inside the area's bottom-right corner.
+    func show(below area: NSRect, on screen: NSScreen) {
+        let size = panel.frame.size
+        let v = screen.visibleFrame
+        let gap = Settings.recordingControlAreaGap
+        let x = min(max(area.maxX - size.width, v.minX), v.maxX - size.width)
+        var y = area.minY - gap - size.height
+        if y < v.minY { y = area.maxY + gap }
+        if y + size.height > v.maxY { y = max(area.minY + gap, v.minY) }
+        panel.setFrameOrigin(NSPoint(x: x, y: y))
+        panel.orderFrontRegardless()
+    }
+
     func close() { panel.orderOut(nil) }
     var contentView: NSView? { panel.contentView }
 }

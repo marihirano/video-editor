@@ -198,6 +198,8 @@ public enum Settings {
     public static let defaultHideDesktopIcons = true
     /// The recording control sits this far above the bottom of the screen (above the Dock).
     public static let recordingControlBottomGap: Double = 24
+    /// Recording an area: the control sits this far below the area (it includes the bar's own 4 pt margin).
+    public static let recordingControlAreaGap: Double = 4
     /// Recording an area: the rest of its display is dimmed with black at this opacity (Mari's wireframe).
     public static let recordingAreaDimOpacity: Double = 0.45
     /// Recording a window: a muted magenta border around it (Claude's shade, for Mari to review).
