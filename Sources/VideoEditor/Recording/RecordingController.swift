@@ -195,7 +195,7 @@ final class RecordingController: ObservableObject {
 
         let panel = RecordingControlPanel(controller: self)
         if kind == .area, let a = area, let s = NSScreen.with(displayID: a.display) {
-            // Right under the area, lined up with its right edge (Mari's wireframe).
+            // Right under the area, centred (Mari).
             let f = s.frame
             panel.show(below: NSRect(x: f.minX + a.rect.minX, y: f.maxY - a.rect.maxY, width: a.rect.width, height: a.rect.height), on: s)
         } else {
