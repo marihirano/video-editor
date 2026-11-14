@@ -196,6 +196,14 @@ public enum Settings {
     public static let recordingsFolderName = "Video Editor"
     /// Hide desktop icons while recording, unless switched off.
     public static let defaultHideDesktopIcons = true
+    /// The recording control sits this far above the bottom of the screen (above the Dock).
+    public static let recordingControlBottomGap: Double = 24
+    /// Recording an area: the rest of its display is dimmed with black at this opacity (Mari's wireframe).
+    public static let recordingAreaDimOpacity: Double = 0.45
+    /// Recording a window: a muted magenta border around it (Claude's shade, for Mari to review).
+    public static let recordingWindowBorderColor = RGBAColor(hex: 0xB8579A)
+    public static let recordingWindowBorderWidth: Double = 3
+    public static let recordingWindowBorderRadius: Double = 14
 
 }
 

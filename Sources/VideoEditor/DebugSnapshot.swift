@@ -6,6 +6,7 @@ import EditorCore
 /// The Metal preview itself shows as blank in this picture; only the layout around it is captured.
 @MainActor
 enum DebugSnapshot {
+    private static let debugHighlight = RecordingHighlight()
     static func runIfRequested() {
         guard let path = ProcessInfo.processInfo.environment["VET_SNAPSHOT"] else { return }
         DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
@@ -45,12 +46,17 @@ enum DebugSnapshot {
             // VET_SNAPSHOT_RECORD=display|window|area opens the Record window on that choice (`…-sheet.png`)
             // and shows the floating recording control (`…-panel.png`) as if recording for 12 s.
             var panelView: NSView?
+            var overlayView: NSView?
             if let kind = env["VET_SNAPSHOT_RECORD"] {
                 let rec = RecordingController.shared
                 rec.kind = RecordingController.Kind(rawValue: kind) ?? .display
                 if rec.kind == .area { rec.area = (CGMainDisplayID(), CGRect(x: 200, y: 150, width: 1280, height: 720)) }
                 rec.showSetup()
                 panelView = rec.debugControlPanelView()
+                if rec.kind == .area, let a = rec.area, let screen = NSScreen.with(displayID: a.display) {
+                    debugHighlight.showArea(a.rect, on: screen)
+                    overlayView = debugHighlight.contentView
+                }
             }
             let busy = env["VET_SNAPSHOT_ZOOM"] != nil || env["VET_SNAPSHOT_CROP"] != nil || env["VET_SNAPSHOT_EXPORT"] != nil || env["VET_SNAPSHOT_RECORD"] != nil
             if !busy { model.playback.play() }
@@ -59,6 +65,10 @@ enum DebugSnapshot {
                    let rep = sheet.bitmapImageRepForCachingDisplay(in: sheet.bounds) {
                     sheet.cacheDisplay(in: sheet.bounds, to: rep)
                     try? rep.representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: path + "-sheet.png"))
+                }
+                if let v = overlayView, let rep = v.bitmapImageRepForCachingDisplay(in: v.bounds) {
+                    v.cacheDisplay(in: v.bounds, to: rep)
+                    try? rep.representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: path + "-overlay.png"))
                 }
                 if let v = panelView, let rep = v.bitmapImageRepForCachingDisplay(in: v.bounds) {
                     v.cacheDisplay(in: v.bounds, to: rep)

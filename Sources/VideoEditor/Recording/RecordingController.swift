@@ -40,6 +40,7 @@ final class RecordingController: ObservableObject {
     private var countdown: CountdownOverlay?
     private var countdownTask: Task<Void, Never>?
     private var panel: RecordingControlPanel?
+    private var highlight: RecordingHighlight?
     private var timer: Timer?
     private var hiddenWindows: [NSWindow] = []
     private let picker = AreaPicker()
@@ -166,6 +167,21 @@ final class RecordingController: ObservableObject {
         }
         self.recorder = recorder
 
+        // Show what's being recorded before the stream is set up, so these windows are left out of it too.
+        let highlight = RecordingHighlight()
+        switch kind {
+        case .area: if let a = area, let s = NSScreen.with(displayID: a.display) { highlight.showArea(a.rect, on: s) }
+        case .window:
+            if let id = windowID {
+                highlight.showWindow(id)
+                if let f = RecordingHighlight.appKitFrame(of: id) {
+                    screen = NSScreen.screens.first { $0.frame.intersects(f) && $0.frame.contains(NSPoint(x: f.midX, y: f.midY)) } ?? screen
+                }
+            }
+        case .display: break
+        }
+        self.highlight = highlight
+
         let panel = RecordingControlPanel(controller: self)
         panel.show(on: screen)
         self.panel = panel
@@ -232,6 +248,14 @@ final class RecordingController: ObservableObject {
         cleanUp()
     }
 
+    /// Delete (the control's trash button, after its confirm): stops and keeps nothing.
+    func deleteRecording() {
+        guard phase == .recording || phase == .paused, let recorder else { return }
+        watcher?.stop()
+        Task { await recorder.discard() }
+        cleanUp()
+    }
+
     /// Stop: finishes the file, saves a project with the cursor log beside it, and opens it in the editor.
     func stop() {
         guard phase == .recording || phase == .paused, let recorder else { return }
@@ -272,6 +296,7 @@ final class RecordingController: ObservableObject {
         timer?.invalidate(); timer = nil
         countdown?.close(); countdown = nil
         panel?.close(); panel = nil
+        highlight?.close(); highlight = nil
         recorder = nil; log = nil; countdownTask = nil
         phase = .idle; elapsed = 0
         bringEditorForward()
