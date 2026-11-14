@@ -25,7 +25,7 @@ extension NSScreen {
 
 // MARK: Countdown
 
-/// The big 3 · 2 · 1 in the middle of the display about to be recorded. Click it or press Esc to cancel.
+/// The big 3 · 2 · 1 in the middle of the display about to be recorded, with Skip. Esc cancels.
 @MainActor
 final class CountdownOverlay {
     private var window: OverlayWindow?
@@ -33,12 +33,12 @@ final class CountdownOverlay {
 
     final class Model: ObservableObject { @Published var number = 3 }
 
-    func show(on screen: NSScreen, from n: Int, cancel: @escaping () -> Void) {
+    func show(on screen: NSScreen, from n: Int, skip: @escaping () -> Void, cancel: @escaping () -> Void) {
         model.number = n
         let size: CGFloat = 168
         let f = screen.frame
         let w = OverlayWindow(frame: NSRect(x: f.midX - size / 2, y: f.midY - size / 2, width: size, height: size), level: .screenSaver)
-        w.contentView = NSHostingView(rootView: CountdownView(model: model, cancel: cancel))
+        w.contentView = NSHostingView(rootView: CountdownView(model: model, skip: skip, cancel: cancel))
         w.orderFrontRegardless()
         window = w
     }
@@ -50,19 +50,18 @@ final class CountdownOverlay {
 
 private struct CountdownView: View {
     @ObservedObject var model: CountdownOverlay.Model
+    let skip: () -> Void
     let cancel: () -> Void
 
     var body: some View {
         VStack(spacing: Theme.s1) {
             Text("\(model.number)").font(Theme.font(72).monospacedDigit())
                 .contentTransition(.numericText(countsDown: true))
-            Text("Click or Esc to cancel").font(Theme.fontCaption).foregroundStyle(Theme.secondaryText)
+            Button("Skip", action: skip).buttonStyle(QuietButtonStyle()).help("Start recording now (Esc cancels)")
         }
         .frame(width: 168, height: 168)
         .background(RoundedRectangle(cornerRadius: Theme.radiusLarge * 2).fill(Theme.panelFill.opacity(0.94)))
         .overlay(RoundedRectangle(cornerRadius: Theme.radiusLarge * 2).strokeBorder(Theme.hairline))
-        .contentShape(Rectangle())
-        .onTapGesture(perform: cancel)
         .background(KeyCatcher(onEscape: cancel))
     }
 }

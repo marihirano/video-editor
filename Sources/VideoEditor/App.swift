@@ -49,5 +49,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         MainActor.assumeIsolated { EditorModel.shared.confirmDiscardChanges() } ? .terminateNow : .terminateCancel
     }
 
-    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { true }
+    /// Closing the window quits, but not while recording: the editor window is hidden then, and
+    /// a whole-display recording has no other window showing (Mari found the app quitting).
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        MainActor.assumeIsolated { !RecordingController.shared.isBusy }
+    }
 }

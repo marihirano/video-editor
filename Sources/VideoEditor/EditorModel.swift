@@ -353,6 +353,7 @@ final class EditorModel: ObservableObject {
     /// Before closing, quitting or opening something else: offers to save unsaved changes.
     /// Returns false if the person chose Cancel (or cancelled the save).
     func confirmDiscardChanges() -> Bool {
+        if isFreshRecording { return confirmCloseRecording() }
         guard hasUnsavedChanges else { return true }
         let alert = NSAlert()
         alert.messageText = "Save changes to “\(displayName)”?"
@@ -363,6 +364,32 @@ final class EditorModel: ObservableObject {
         switch alert.runModal() {
         case .alertFirstButtonReturn: save(); return !hasUnsavedChanges
         case .alertThirdButtonReturn: savedProject = project; return true   // so quitting next doesn't ask again
+        default: return false
+        }
+    }
+
+    /// True for a recording just made in the app, until it's exported or dealt with by the prompt below.
+    var isFreshRecording = false
+
+    /// Closing (or quitting, or opening something else) with a fresh recording asks first, even with no edits
+    /// (Mari). Delete moves the video and its project to the Trash; Keep saves any edits and leaves both
+    /// in Movies › Video Editor.
+    private func confirmCloseRecording() -> Bool {
+        let alert = NSAlert()
+        alert.messageText = "Delete “\(displayName)”?"
+        alert.informativeText = "Closing will move this recording to the Trash. To keep it, choose Keep Recording. It stays in Movies › Video Editor."
+        alert.addButton(withTitle: "Delete Recording").hasDestructiveAction = true
+        alert.addButton(withTitle: "Cancel")
+        alert.addButton(withTitle: "Keep Recording")
+        switch alert.runModal() {
+        case .alertFirstButtonReturn:
+            for url in [sourceURL, projectURL].compactMap({ $0 }) { try? FileManager.default.trashItem(at: url, resultingItemURL: nil) }
+            savedProject = project; isFreshRecording = false
+            return true
+        case .alertThirdButtonReturn:
+            if hasUnsavedChanges { save() }
+            isFreshRecording = false
+            return !hasUnsavedChanges
         default: return false
         }
     }
@@ -405,6 +432,7 @@ final class EditorModel: ObservableObject {
                     }
                 }
                 export = .finished(outURL)
+                isFreshRecording = false   // exported, so closing no longer offers to delete it
             } catch is CancellationError {
                 export = nil
             } catch {

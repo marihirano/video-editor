@@ -40,8 +40,6 @@ final class RecordingControlPanel {
 
 private struct RecordingControlView: View {
     @EnvironmentObject private var rec: RecordingController
-    /// Delete asks once: the first click turns the button into "Delete?" for a few seconds.
-    @State private var confirmingDelete = false
 
     private var isCountdown: Bool { if case .countdown = rec.phase { return true }; return false }
     private var busy: Bool { rec.phase == .finishing }
@@ -66,13 +64,7 @@ private struct RecordingControlView: View {
             .disabled(isCountdown || busy)
             divider
             segment(help: isCountdown ? "Cancel" : "Delete this recording", action: deleteTapped) {
-                Group {
-                    if confirmingDelete {
-                        Text("Delete?").font(Theme.fontBody).foregroundStyle(Color(red: 1, green: 0.32, blue: 0.3))
-                    } else {
-                        Image(systemName: "trash").font(.system(size: 18, weight: .light)).foregroundStyle(.white)
-                    }
-                }
+                Image(systemName: "trash").font(.system(size: 18, weight: .light)).foregroundStyle(.white)
             }
             .disabled(busy)
         }
@@ -94,23 +86,20 @@ private struct RecordingControlView: View {
     private var divider: some View { Rectangle().fill(Color.white.opacity(0.14)).frame(width: 1, height: 24) }
 
     private func deleteTapped() {
-        if isCountdown { rec.cancel(); return }
-        if confirmingDelete { rec.deleteRecording(); return }
-        confirmingDelete = true
-        Task { try? await Task.sleep(nanoseconds: 3_000_000_000); confirmingDelete = false }
+        if isCountdown { rec.cancel() } else { rec.deleteRecording() }
     }
 
     private var stopColor: Color {
         switch rec.phase {
         case .recording: return Color(red: 1, green: 0.27, blue: 0.23)          // #FF453A
-        case .paused: return Color(red: 1, green: 0.62, blue: 0.04)             // orange while paused
+        case .paused: return .white                                             // white while paused (Mari)
         default: return Color.white.opacity(0.45)
         }
     }
 
     private var timeText: String {
         switch rec.phase {
-        case .countdown(let n): return "\(n)…"
+        case .countdown: return "0:00"
         case .finishing: return "Saving…"
         default: return RecordingController.timerText(rec.elapsed)
         }

@@ -39,6 +39,7 @@ final class RecordingController: ObservableObject {
     private var watcher: CursorWatcher?
     private var countdown: CountdownOverlay?
     private var countdownTask: Task<Void, Never>?
+    private var skipRequested = false
     private var panel: RecordingControlPanel?
     private var highlight: RecordingHighlight?
     private var timer: Timer?
@@ -155,9 +156,6 @@ final class RecordingController: ObservableObject {
             screen = NSScreen.with(displayID: a.display) ?? screen
         }
 
-        // Out of the way: this app's windows aren't recorded anyway, but they'd cover what is.
-        hiddenWindows = visibleMainWindows()
-        hiddenWindows.forEach { $0.orderOut(nil) }
 
         let url: URL
         do { url = try Self.newRecordingURL() } catch { fail(error); return }
@@ -187,9 +185,16 @@ final class RecordingController: ObservableObject {
         self.panel = panel
 
         let seconds = Settings.recordingCountdownSeconds
-        phase = .countdown(seconds)
+        phase = .countdown(seconds)   // set before hiding the editor, so the app doesn't quit with no window showing
+        skipRequested = false
+        // Out of the way: this app's windows aren't recorded anyway, but they'd cover what is.
+        hiddenWindows = visibleMainWindows()
+        hiddenWindows.forEach { $0.orderOut(nil) }
         let overlay = CountdownOverlay()
-        if seconds > 0, let screen { overlay.show(on: screen, from: seconds) { [weak self] in self?.cancel() } }
+        if seconds > 0, let screen {
+            overlay.show(on: screen, from: seconds, skip: { [weak self] in self?.skipRequested = true },
+                         cancel: { [weak self] in self?.cancel() })
+        }
         countdown = overlay
 
         countdownTask = Task { [weak self] in
@@ -197,9 +202,12 @@ final class RecordingController: ObservableObject {
                 // Getting the stream ready runs during the countdown (the overlay and control are this app's, so not recorded).
                 let prep = try await recorder.prepare(target: target, hideDesktopIcons: self?.hideDesktopIcons ?? true,
                                                       excludingWindowsOf: getpid(), name: name)
-                for n in stride(from: seconds, to: 0, by: -1) {
+                countdown: for n in stride(from: seconds, to: 0, by: -1) {
                     self?.phase = .countdown(n); overlay.set(n)
-                    try await Task.sleep(nanoseconds: 1_000_000_000)
+                    for _ in 0..<20 {                                   // 1 s in small steps, so Skip is instant
+                        if self?.skipRequested ?? false { break countdown }
+                        try await Task.sleep(nanoseconds: 50_000_000)
+                    }
                 }
                 overlay.close()
                 try await Task.sleep(nanoseconds: 120_000_000)   // let the countdown fade off the screen
@@ -268,6 +276,7 @@ final class RecordingController: ObservableObject {
                 log?.finish(at: duration)
                 let package = try await saveProject(video: recorder.fileURL)
                 await EditorModel.shared.openProject(package)
+                EditorModel.shared.isFreshRecording = true
                 cleanUp()   // after opening, so the window comes forward already showing the recording
             } catch {
                 fail(error)

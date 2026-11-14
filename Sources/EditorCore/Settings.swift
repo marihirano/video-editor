@@ -202,8 +202,11 @@ public enum Settings {
     public static let recordingAreaDimOpacity: Double = 0.45
     /// Recording a window: a muted magenta border around it (Claude's shade, for Mari to review).
     public static let recordingWindowBorderColor = RGBAColor(hex: 0xB8579A)
-    public static let recordingWindowBorderWidth: Double = 3
-    public static let recordingWindowBorderRadius: Double = 14
+    public static let recordingWindowBorderWidth: Double = 5
+    /// The border's inner corner radius. Big enough to sit outside macOS 26's rounded window corners, so no
+    /// gap shows; the border also overlaps the window's edge by `recordingWindowBorderOverlap`.
+    public static let recordingWindowBorderInnerRadius: Double = 22
+    public static let recordingWindowBorderOverlap: Double = 1
 
 }
 

@@ -53,7 +53,7 @@ final class RecordingHighlight {
     }
 
     private static func borderFrame(_ f: NSRect) -> NSRect {
-        let o = Settings.recordingWindowBorderWidth
+        let o = Settings.recordingWindowBorderWidth - Settings.recordingWindowBorderOverlap
         return f.insetBy(dx: -o, dy: -o)
     }
 
@@ -83,7 +83,7 @@ private struct AreaDim: View {
 /// The muted magenta outline around a recorded window.
 private struct WindowBorder: View {
     var body: some View {
-        RoundedRectangle(cornerRadius: Settings.recordingWindowBorderRadius)
+        RoundedRectangle(cornerRadius: Settings.recordingWindowBorderInnerRadius + Settings.recordingWindowBorderWidth)
             .strokeBorder(Color(rgba: Settings.recordingWindowBorderColor), lineWidth: Settings.recordingWindowBorderWidth)
     }
 }
