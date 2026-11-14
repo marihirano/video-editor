@@ -237,13 +237,14 @@ final class RecordingController: ObservableObject {
         guard phase == .recording || phase == .paused, let recorder else { return }
         phase = .finishing
         watcher?.stop()
+        NSApp.activate()   // asked now, while the Stop click or shortcut still counts as the user's own action
         Task {
             do {
                 let duration = try await recorder.stop()
                 log?.finish(at: duration)
                 let package = try await saveProject(video: recorder.fileURL)
-                cleanUp()
                 await EditorModel.shared.openProject(package)
+                cleanUp()   // after opening, so the window comes forward already showing the recording
             } catch {
                 fail(error)
             }
@@ -273,9 +274,18 @@ final class RecordingController: ObservableObject {
         panel?.close(); panel = nil
         recorder = nil; log = nil; countdownTask = nil
         phase = .idle; elapsed = 0
-        hiddenWindows.forEach { $0.makeKeyAndOrderFront(nil) }
+        bringEditorForward()
+    }
+
+    /// Shows the editor window in front of whatever app was being recorded. `orderFrontRegardless`
+    /// works even when macOS won't let the app become active from the background.
+    private func bringEditorForward() {
+        let windows = hiddenWindows.isEmpty
+            ? NSApp.windows.filter { !($0 is NSPanel) && !($0 is OverlayWindow) && $0.canBecomeMain }
+            : hiddenWindows
         hiddenWindows = []
-        NSApp.activate(ignoringOtherApps: true)
+        NSApp.activate()
+        windows.forEach { $0.deminiaturize(nil); $0.orderFrontRegardless(); $0.makeKey() }
     }
 
     // MARK: Helpers
