@@ -89,6 +89,13 @@ final class EditorModel: ObservableObject {
         edit(group: "style") { change(&$0.style) }
     }
 
+    /// True for recordings made in the app (they have a cursor log); only these show the cursor controls.
+    var hasCursorData: Bool { !(project?.cursor.samples.isEmpty ?? true) }
+
+    func updateCursorLook(_ change: (inout CursorLook) -> Void) {
+        edit(group: "cursorLook") { change(&$0.cursorLook) }
+    }
+
     // MARK: Timeline (positions are finished-video seconds)
 
     var clips: [Clip] { project?.timeline.resolvedClips(sourceDuration: sourceDuration) ?? [] }

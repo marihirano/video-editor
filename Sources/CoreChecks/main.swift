@@ -649,6 +649,167 @@ do {
     check(writer.status == .completed && abs((done?.duration ?? 0) - 7) < 0.05 && done?.width == 640, "finished recording is 7 s, 640×400")
 }
 
+print("Cursor (P2)")
+do {
+    func near(_ a: Double, _ b: Double, _ tol: Double) -> Bool { abs(a - b) <= tol }
+    // Save and reopen; older files get the default look.
+    var look = CursorLook()
+    look.style = .white; look.size = 2.5; look.smoothing = 0.2; look.motionBlur = 0; look.clickEffect = .circle; look.hideWhenIdle = false; look.show = false
+    var pj = Project(source: SourceVideo(path: "/x.mov", width: 100, height: 100, duration: 1))
+    pj.cursorLook = look
+    check(try JSONDecoder().decode(Project.self, from: JSONEncoder().encode(pj)).cursorLook == look, "cursor look survives save and reopen")
+    let p1 = #"{"source":{"path":"/x.mov","width":10,"height":10,"duration":1},"cursor":{"version":1,"samples":[{"time":0,"x":1,"y":2}]}}"#
+    let oldP = try JSONDecoder().decode(Project.self, from: Data(p1.utf8))
+    check(oldP.cursorLook == CursorLook() && oldP.cursor.samples.count == 1, "P1 project (no cursor look) opens with the default cursor")
+    let weird = #"{"source":{"path":"/x.mov","width":10,"height":10,"duration":1},"cursorLook":{"style":"sparkly","size":3}}"#
+    let wp = try JSONDecoder().decode(Project.self, from: Data(weird.utf8))
+    check(wp.cursorLook.style == Settings.defaultCursorStyle && wp.cursorLook.size == 3, "unknown cursor style falls back, other settings kept")
+
+    // Imported videos: nothing is drawn.
+    let imported = Project(source: SourceVideo(path: "/x.mov", width: 1440, height: 900, duration: 4))
+    check(FrameLayout.cursorFrame(project: imported, outputTime: 1) == nil && !FrameLayout.cursorUniforms(project: imported, outputTime: 1).isVisible,
+          "imported video draws no cursor")
+
+    // Smoothing: a jittery path is calmed, a straight steady move isn't delayed, a still cursor stays put.
+    var jitter = CursorTrack()
+    for i in 0..<480 { let t = Double(i) / 120; jitter.samples.append(CursorSample(time: t, x: 500 + t * 100 + (i % 2 == 0 ? 6 : -6), y: 300)) }
+    let raw = CursorMotion(track: jitter, smoothing: 0), smooth = CursorMotion(track: jitter, smoothing: 0.5)
+    func wobble(_ m: CursorMotion) -> Double {
+        var w = 0.0; for i in 120..<360 { let t = Double(i) / 240; w = max(w, abs(m.position(at: t).x - (500 + t * 100))) }; return w
+    }
+    check(wobble(raw) > 5 && wobble(smooth) < 1, String(format: "smoothing calms jitter (%.1f px → %.2f px)", wobble(raw), wobble(smooth)))
+    check(near(smooth.position(at: 2).x, 700, 1.5), String(format: "smoothing doesn't lag a steady move (%.1f, expected 700)", smooth.position(at: 2).x))
+    var still = CursorTrack(); still.samples = [CursorSample(time: 0, x: 40, y: 50)]
+    check(CursorMotion(track: still, smoothing: 1).position(at: 3) == CGPoint(x: 40, y: 50), "a still cursor stays exactly where it was")
+    var hop = CursorTrack(); hop.samples = [CursorSample(time: 0, x: 0, y: 0), CursorSample(time: 1, x: 100, y: 0)]
+    let hr = CursorMotion(track: hop, smoothing: 0)
+    check(hr.position(at: 0.5).x == 0 && hr.position(at: 1.2).x == 100, "between far-apart samples the cursor waits, then moves")
+
+    // Hide when idle, press, shapes.
+    var idle = CursorTrack()
+    idle.samples = [CursorSample(time: 0, x: 0, y: 0), CursorSample(time: 1, x: 10, y: 0), CursorSample(time: 6, x: 20, y: 0)]
+    let im = CursorMotion(track: idle, smoothing: 0)
+    check(im.idleOpacity(at: 1.5) == 1 && im.idleOpacity(at: 4) == 0 && im.idleOpacity(at: 6) == 1 && im.idleOpacity(at: 5.85) > 0 && im.idleOpacity(at: 5.85) < 1,
+          "idle cursor fades out after 2 s still and back in as it moves")
+    idle.clicks = [CursorClick(time: 2, x: 10, y: 0, phase: .down), CursorClick(time: 2.5, x: 10, y: 0, phase: .up)]
+    let pm = CursorMotion(track: idle, smoothing: 0)
+    check(pm.pressAmount(at: 1.9) == 0 && pm.pressAmount(at: 2.3) == 1 && pm.pressAmount(at: 3) == 0, "cursor presses while the button is held")
+    check(pm.idleOpacity(at: 4) == 1 && pm.idleOpacity(at: 5) == 0, "a click counts as activity for hiding")
+    check(CursorArt.cell(for: .other) == .arrow && CursorArt.cell(for: .iBeam) == .iBeam && CursorArt.cell(for: .resizeLeft) == .resizeLeftRight,
+          "unknown cursors draw as the arrow, others as their own picture")
+    var shaped = CursorTrack(); shaped.shapes = [CursorShapeChange(time: 0, shape: .arrow), CursorShapeChange(time: 1, shape: .pointingHand)]
+    check(shaped.shape(at: 0.5) == .arrow && shaped.shape(at: 1.5) == .pointingHand, "the shape follows the log")
+
+    // Timing through cuts and speed: x = 100 px per source second, clips 2–4 s at 2× and 6–8 s.
+    var timed = Project(source: SourceVideo(path: "/x.mov", width: 1440, height: 900, duration: 8))
+    for i in 0...960 { let t = Double(i) / 120; timed.cursor.samples.append(CursorSample(time: t, x: t * 100, y: 400)) }
+    timed.cursor.clicks = [CursorClick(time: 3, x: 300, y: 400), CursorClick(time: 3.1, x: 310, y: 400, phase: .up),
+                           CursorClick(time: 5, x: 500, y: 400)]
+    timed.timeline.clips = [Clip(start: 2, end: 4, rate: 2), Clip(start: 6, end: 8)]
+    timed.cursorLook.hideWhenIdle = false
+    let tmap = TimeMap(project: timed, sourceDuration: 8)
+    let f1 = FrameLayout.cursorFrame(project: timed, outputTime: 0.5, timeMap: tmap)!
+    check(near(f1.position.x, 300, 1), String(format: "cursor follows a 2× clip (at 0.5 s shows source 3 s: x %.1f)", f1.position.x))
+    let f2 = FrameLayout.cursorFrame(project: timed, outputTime: 1.5, timeMap: tmap)!
+    check(near(f2.position.x, 650, 1), String(format: "cursor jumps over a deleted part (at 1.5 s: x %.1f, expected 650)", f2.position.x))
+    check(f1.clicks.count == 1 && near(f1.clicks[0].progress, 0, 1e-6), "click effect starts at the click's moment in the finished video")
+    let f3 = FrameLayout.cursorFrame(project: timed, outputTime: 0.5 + Settings.clickEffectSeconds * 0.5, timeMap: tmap)!
+    check(f3.clicks.count == 1 && near(f3.clicks[0].progress, 0.5, 1e-6), "click effect lasts the same in a sped-up clip")
+    check((0..<40).allSatisfy { FrameLayout.cursorFrame(project: timed, outputTime: 1.05 + Double($0) * 0.02, timeMap: tmap)!.clicks.isEmpty },
+          "a click in a deleted part shows no effect")
+    timed.cursorLook.motionBlur = 1
+    let fb = FrameLayout.cursorFrame(project: timed, outputTime: 1.01, timeMap: tmap)!
+    check(near(fb.blurFrom.x, 600, 1) && near(fb.position.x, 601, 1), String(format: "motion blur never streaks across a cut (from %.0f to %.0f)", fb.blurFrom.x, fb.position.x))
+    let fm = FrameLayout.cursorFrame(project: timed, outputTime: 1.5, timeMap: tmap)!
+    check(near(fm.position.x - fm.blurFrom.x, Settings.cursorMaxBlurSeconds * 100, 0.5), "motion blur covers the last moment of movement")
+
+    // A real export with the cursor drawn, through crop and zoom.
+    let source = tmp.appendingPathComponent("cursor-source.mov")
+    try await TestVideo.make(at: source, width: 1440, height: 900, seconds: 2, fps: 30)
+    let info = try await VideoInfo.load(source)
+    var cp = Project(source: info.sourceVideo)
+    cp.style.padding = 0; cp.style.cornerRadius = 0; cp.style.shadowOpacity = 0
+    cp.cursor.capture = CaptureInfo(kind: .display, width: 1440, height: 900, scale: 1, frame: CGRect(x: 0, y: 0, width: 1440, height: 900), name: "Test")
+    cp.cursor.samples = [CursorSample(time: 0, x: 720, y: 450)]
+    cp.cursorLook.size = 2; cp.cursorLook.hideWhenIdle = false; cp.cursorLook.motionBlur = 0
+    func frameAt(_ p: Project, _ name: String, _ t: Double = 1) async throws -> NSBitmapImageRep {
+        let url = tmp.appendingPathComponent(name + ".mp4")
+        try await Exporter().export(project: p, sourceURL: source, to: url) { _ in }
+        let g = AVAssetImageGenerator(asset: AVURLAsset(url: url))
+        g.requestedTimeToleranceBefore = .zero; g.requestedTimeToleranceAfter = .zero
+        let (img, _) = try await g.image(at: CMTime(seconds: t, preferredTimescale: 600))
+        if let dir = ProcessInfo.processInfo.environment["VET_CHECK_FRAME_DIR"] {
+            try NSBitmapImageRep(cgImage: img).representation(using: .png, properties: [:])?
+                .write(to: URL(fileURLWithPath: dir).appendingPathComponent("cursor-\(name).png"))
+        }
+        return NSBitmapImageRep(cgImage: img)
+    }
+    func lum(_ r: NSBitmapImageRep, _ x: Int, _ y: Int) -> Double {
+        let c = r.colorAt(x: x, y: y)!.usingColorSpace(.sRGB)!
+        return (c.redComponent + c.greenComponent + c.blueComponent) / 3 * 255
+    }
+    // Inside the arrow: 2.5 points right of and 9 below its tip. Canvas scale 1080/900 = 1.2, cursor size 2.
+    let k = 1.2 * 2
+    let plainR = try await frameAt(cp, "plain")
+    let (bx, by) = (Int(960 + 2.5 * k), Int(540 + 9 * k))
+    check(lum(plainR, bx, by) < 40, String(format: "export draws the black cursor at its spot (brightness %.0f)", lum(plainR, bx, by)))
+    check(lum(plainR, Int(960 - 3 * k), by) > 150 || lum(plainR, Int(960 - 3 * k), by) > lum(plainR, bx, by) + 80,
+          "the cursor has a light edge beside it")
+    var white = cp; white.cursorLook.style = .white
+    let whiteR = try await frameAt(white, "white")
+    check(lum(whiteR, bx, by) > 215, String(format: "white style draws a white cursor (brightness %.0f)", lum(whiteR, bx, by)))
+    var off = cp; off.cursorLook.show = false
+    let offR = try await frameAt(off, "off")
+    check(abs(lum(offR, bx, by) - lum(plainR, bx, by)) > 40, "switching the cursor off removes it")
+    // Crop to the middle quarter: 720×450 shown 1728×1080 (2.4×) from x = 96; the source centre lands on the canvas centre.
+    var cropped = cp; cropped.crop = CropRect(x: 360, y: 225, width: 720, height: 450)
+    let k2 = 2.4 * 2
+    let cropR = try await frameAt(cropped, "crop")
+    check(lum(cropR, Int(960 + 2.5 * k2), Int(540 + 9 * k2)) < 40 && lum(cropR, Int(960 + 2.5 * k2), Int(540 + 16 * k2)) > 60,
+          "cursor follows the crop (and grows with it)")
+    // Plus a 2× zoom on the middle, fully in at 1 s: the cursor doubles again around the centre.
+    var zoomed = cropped
+    zoomed.timeline.zooms = [ZoomSegment(range: TimeRange(start: 0, end: 2), centerX: 0.5, centerY: 0.5, scale: 2, transition: 0.2, bounce: 0)]
+    let zoomR = try await frameAt(zoomed, "zoom")
+    let k3 = k2 * 2
+    check(lum(zoomR, Int(960 + 2.5 * k3), Int(540 + 9 * k3)) < 40 && lum(zoomR, Int(960 + 2.5 * k3), Int(540 + 30 * k3)) > 60,
+          "cursor follows the zoom")
+    // Pixel art drawn by the app: the arrow cell has dark pixels inside a light edge, and a soft shadow.
+    let art = CursorArt.atlas(cellPixels: 128)
+    func px(_ cell: CursorArt.Cell, _ ux: Double, _ uy: Double, _ ch: Int) -> UInt8 {
+        let r = CursorArt.rect(of: cell)
+        let x = Int((r.minX + ux / 32 * r.width) * Double(art.width)), y = Int((r.minY + uy / 32 * r.height) * Double(art.height))
+        return art.bytes[(y * art.width + x) * 4 + ch]
+    }
+    check(px(.arrow, 11, 14, 0) > 200 && px(.arrow, 11, 14, 1) > 200 && px(.arrow, 8.4, 14, 0) < 60 && px(.arrow, 8.4, 14, 1) > 150,
+          "arrow art: dark inside, light edge")
+    check(px(.pointingHand, 17, 22, 1) > 200 && px(.pointingHand, 17, 22, 0) < 60, "hand art: light inside")
+    if let dir = ProcessInfo.processInfo.environment["VET_CHECK_FRAME_DIR"] {
+        let full = CursorArt.atlas(cellPixels: 256)
+        let provider = CGDataProvider(data: Data(full.bytes) as CFData)!
+        // Shown as: dark parts black, light parts white, shadow grey, on a mid-grey background.
+        var rgba = [UInt8](repeating: 0, count: full.width * full.height * 4)
+        for i in 0..<(full.width * full.height) {
+            let d = Double(full.bytes[i * 4]) / 255, b = Double(full.bytes[i * 4 + 1]) / 255, sh = Double(full.bytes[i * 4 + 2]) / 255 * 0.35
+            var c = 0.6 * (1 - sh)
+            c = c * (1 - b) + (b - d)
+            let v = UInt8(max(0, min(255, c * 255)))
+            rgba[i * 4] = v; rgba[i * 4 + 1] = v; rgba[i * 4 + 2] = v; rgba[i * 4 + 3] = 255
+        }
+        _ = provider
+        let img = CGImage(width: full.width, height: full.height, bitsPerComponent: 8, bitsPerPixel: 32, bytesPerRow: full.width * 4,
+                          space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.noneSkipLast.rawValue),
+                          provider: CGDataProvider(data: Data(rgba) as CFData)!, decode: nil, shouldInterpolate: false, intent: .defaultIntent)!
+        try NSBitmapImageRep(cgImage: img).representation(using: .png, properties: [:])?
+            .write(to: URL(fileURLWithPath: dir).appendingPathComponent("cursor-art.png"))
+        // Click effects and the dot, for eyeballing.
+        var fx = cp; fx.cursor.clicks = [CursorClick(time: 0.85, x: 720, y: 450)]
+        fx.cursorLook.clickEffect = .ripple; _ = try await frameAt(fx, "ripple")
+        fx.cursorLook.clickEffect = .circle; _ = try await frameAt(fx, "circle")
+        fx.cursorLook.style = .dot; _ = try await frameAt(fx, "dot")
+    }
+}
+
 // Speed test, only when asked: VET_PERF=1 swift run -c release CoreChecks (makes a 4K, 30 s test recording).
 if ProcessInfo.processInfo.environment["VET_PERF"] != nil {
     print("Speed")

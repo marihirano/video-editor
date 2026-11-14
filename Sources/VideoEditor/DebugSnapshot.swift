@@ -1,4 +1,5 @@
 import AppKit
+import SwiftUI
 import EditorCore
 
 /// For Claude's checks: launched with VET_SNAPSHOT=/path.png (and a video to open), the app
@@ -58,6 +59,17 @@ enum DebugSnapshot {
                     overlayView = debugHighlight.contentView
                 }
             }
+            // VET_SNAPSHOT_CURSOR=1 draws the Style panel's Cursor section on its own (`…-cursor.png`),
+            // since it sits below the fold of the panel.
+            var cursorView: NSView?
+            if env["VET_SNAPSHOT_CURSOR"] != nil {
+                let host = NSHostingView(rootView: VStack(alignment: .leading) { CursorSection() }
+                    .padding(Theme.panelPadding).frame(width: Theme.panelWidth, alignment: .leading)
+                    .background(Theme.panelFill).environmentObject(model))
+                let w = NSWindow(contentRect: NSRect(x: -2000, y: 0, width: Theme.panelWidth, height: 420), styleMask: .borderless, backing: .buffered, defer: false)
+                w.contentView = host; w.orderBack(nil)
+                cursorView = host
+            }
             let busy = env["VET_SNAPSHOT_ZOOM"] != nil || env["VET_SNAPSHOT_CROP"] != nil || env["VET_SNAPSHOT_EXPORT"] != nil || env["VET_SNAPSHOT_RECORD"] != nil
             if !busy { model.playback.play() }
             DispatchQueue.main.asyncAfter(deadline: .now() + (env["VET_SNAPSHOT_EXPORT"] != nil || env["VET_SNAPSHOT_RECORD"] != nil ? 5 : 1)) {
@@ -69,6 +81,10 @@ enum DebugSnapshot {
                 if let v = overlayView, let rep = v.bitmapImageRepForCachingDisplay(in: v.bounds) {
                     v.cacheDisplay(in: v.bounds, to: rep)
                     try? rep.representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: path + "-overlay.png"))
+                }
+                if let v = cursorView, let rep = v.bitmapImageRepForCachingDisplay(in: v.bounds) {
+                    v.cacheDisplay(in: v.bounds, to: rep)
+                    try? rep.representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: path + "-cursor.png"))
                 }
                 if let v = panelView, let rep = v.bitmapImageRepForCachingDisplay(in: v.bounds) {
                     v.cacheDisplay(in: v.bounds, to: rep)

@@ -12,12 +12,14 @@ public struct Project: Codable, Equatable, Sendable {
     /// Part of the source to keep, in source pixels. `nil` means the whole frame (M4).
     public var crop: CropRect? = nil
     public var style: FrameStyle = .init()
-    /// Cursor positions and clicks from in-app recording (phase 2). Never shown in the MVP.
+    /// Cursor positions and clicks from in-app recording (phase 2). Empty for imported videos.
     public var cursor: CursorTrack = .init()
+    /// How the cursor is drawn (P2). Only used when `cursor` has data.
+    public var cursorLook: CursorLook = .init()
 
     public init(source: SourceVideo) { self.source = source }
 
-    enum CodingKeys: String, CodingKey { case version, source, output, timeline, crop, style, cursor }
+    enum CodingKeys: String, CodingKey { case version, source, output, timeline, crop, style, cursor, cursorLook }
 
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -28,6 +30,7 @@ public struct Project: Codable, Equatable, Sendable {
         crop = try c.decodeIfPresent(CropRect.self, forKey: .crop)
         style = try c.decodeIfPresent(FrameStyle.self, forKey: .style) ?? .init()
         cursor = try c.decodeIfPresent(CursorTrack.self, forKey: .cursor) ?? .init()
+        cursorLook = try c.decodeIfPresent(CursorLook.self, forKey: .cursorLook) ?? .init()
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -39,6 +42,7 @@ public struct Project: Codable, Equatable, Sendable {
         try c.encode(crop, forKey: .crop)   // written as null when empty
         try c.encode(style, forKey: .style)
         try c.encode(cursor, forKey: .cursor)
+        try c.encode(cursorLook, forKey: .cursorLook)
     }
 }
 

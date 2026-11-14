@@ -48,7 +48,8 @@ public final class FrameRenderer {
     }
 
     /// Encodes drawing one finished frame into `target`. The caller commits the command buffer.
-    public func encode(frame pixelBuffer: CVPixelBuffer, uniforms: FrameUniforms, backgroundImagePath: String? = nil,
+    public func encode(frame pixelBuffer: CVPixelBuffer, uniforms: FrameUniforms, cursor: CursorUniforms = .hidden,
+                       backgroundImagePath: String? = nil,
                        into target: MTLTexture, commandBuffer: MTLCommandBuffer) {
         guard let (sourceTex, cvTex) = texture(for: pixelBuffer) else { return }
         let pass = MTLRenderPassDescriptor()
@@ -56,11 +57,13 @@ public final class FrameRenderer {
         pass.colorAttachments[0].loadAction = .dontCare
         pass.colorAttachments[0].storeAction = .store
         guard let enc = commandBuffer.makeRenderCommandEncoder(descriptor: pass) else { return }
-        var u = uniforms
+        var u = uniforms, cu = cursor
         enc.setRenderPipelineState(context.framePipeline)
         enc.setFragmentBytes(&u, length: MemoryLayout<FrameUniforms>.stride, index: 0)
+        enc.setFragmentBytes(&cu, length: MemoryLayout<CursorUniforms>.stride, index: 1)
         enc.setFragmentTexture(sourceTex, index: 0)
         enc.setFragmentTexture(backgroundTexture(path: backgroundImagePath), index: 1)
+        enc.setFragmentTexture(cursor.isVisible ? (context.cursorAtlas ?? placeholder) : placeholder, index: 2)
         enc.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
         enc.endEncoding()
         // Keep the wrapped frame alive until the GPU is done with it.

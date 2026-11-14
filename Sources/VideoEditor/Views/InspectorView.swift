@@ -20,7 +20,10 @@ struct InspectorView: View {
                 slider("Blur", value: \.shadowBlur, range: Settings.shadowBlurRange, unit: " px")
                 slider("Distance", value: \.shadowOffset, range: Settings.shadowOffsetRange, unit: " px")
             }
-            Button("Reset style") { model.updateStyle { $0 = FrameStyle() } }
+            if model.hasCursorData { CursorSection() }
+            Button("Reset style") {
+                model.edit(group: "style") { $0.style = FrameStyle(); $0.cursorLook = CursorLook() }
+            }
                 .buttonStyle(QuietButtonStyle(fullWidth: true))
         }
     }

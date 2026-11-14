@@ -210,6 +210,49 @@ public enum Settings {
     public static let recordingWindowBorderInnerRadius: Double = 22
     public static let recordingWindowBorderOverlap: Double = 1
 
+    // MARK: Cursor (phase 2, P2) — drawn from the cursor log; all values Claude's calls, for Mari to review
+    /// New recordings' cursor look.
+    public static let defaultCursorStyle = CursorLook.Style.black
+    /// Size: 1 = the pointer's size on screen while recording.
+    public static let defaultCursorSize = 1.5
+    public static let cursorSizeRange = 0.5...4.0
+    /// Smoothing 0–1. At 1 the path is averaged over about ±`cursorMaxSmoothingSeconds` × 2 (a bell curve).
+    public static let defaultCursorSmoothing = 0.5
+    public static let cursorMaxSmoothingSeconds = 0.14
+    /// Motion blur 0–1. At 1 each frame blurs the cursor over the last `cursorMaxBlurSeconds` of its movement
+    /// (in finished-video seconds), so it only shows when the cursor moves fast.
+    public static let defaultCursorMotionBlur = 0.5
+    public static let cursorMaxBlurSeconds = 0.05
+    /// The most copies of the cursor blended for one blurred frame.
+    public static let cursorMaxBlurSamples = 24
+    public static let defaultCursorClickEffect = CursorLook.ClickEffect.ripple
+    public static let defaultCursorHideWhenIdle = true
+    /// Hide when idle: fade out after this many seconds without moving or clicking, over `cursorFadeSeconds`;
+    /// it fades back in over the same time, finishing as it starts to move.
+    public static let cursorIdleSeconds = 2.0
+    public static let cursorFadeSeconds = 0.3
+    /// While a button is held the cursor shrinks to this size, easing over these times (seconds).
+    public static let cursorPressScale = 0.82
+    public static let cursorPressSeconds = 0.07
+    public static let cursorReleaseSeconds = 0.15
+    /// Click effects: how long one lasts (finished-video seconds), its size (radius, in screen points at cursor
+    /// size 1, grows with the cursor size), and its colour. A faint dark edge keeps it visible on white.
+    public static let clickEffectSeconds = 0.5
+    public static let clickEffectRadiusPoints = 18.0
+    public static let clickEffectColor = RGBAColor(r: 1, g: 1, b: 1, a: 1)
+    public static let clickEffectOpacity = 0.85
+    public static let clickEffectEdgeOpacity = 0.28
+    /// Colours of the cursor art: the dark and the light parts (swapped for the white style).
+    public static let cursorDark = RGBAColor(hex: 0x111114)
+    public static let cursorLight = RGBAColor(r: 1, g: 1, b: 1, a: 1)
+    /// The cursor's soft shadow strength (0–1).
+    public static let cursorShadowOpacity = 0.35
+    /// Dot style: radius (screen points at size 1) and fill; a light ring a fifth of the radius wide goes round it.
+    public static let cursorDotRadiusPoints = 8.0
+    public static let cursorDotFill = RGBAColor(r: 0, g: 0, b: 0, a: 0.45)
+    /// Pixels per side of each cursor picture the app draws (bigger = sharper when the cursor is huge).
+    public static let cursorArtCellPixels = 512
+
 }
 
 public struct GradientPreset: Sendable {

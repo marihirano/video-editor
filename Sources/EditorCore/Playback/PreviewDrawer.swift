@@ -44,7 +44,8 @@ public final class PreviewDrawer: NSObject, MTKViewDelegate {
             let m: LayoutMode = (mode == .withoutZoom && playback.isPlaying) ? .normal : mode
             let u = FrameLayout.uniforms(project: project, sourceSize: size, outputTime: outputTime,
                                          timeMap: playback.timeMap, mode: m)
-            renderer.encode(frame: frame.buffer, uniforms: u, backgroundImagePath: project.style.kind == .image ? project.style.imagePath : nil, into: drawable.texture, commandBuffer: cb)
+            let cursor = FrameLayout.cursorUniforms(project: project, outputTime: outputTime, timeMap: playback.timeMap)
+            renderer.encode(frame: frame.buffer, uniforms: u, cursor: cursor, backgroundImagePath: project.style.kind == .image ? project.style.imagePath : nil, into: drawable.texture, commandBuffer: cb)
             videoFramesDrawn += 1
         } else {
             renderer.encodeClear(Settings.previewSurround, into: drawable.texture, commandBuffer: cb)

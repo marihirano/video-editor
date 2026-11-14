@@ -64,7 +64,8 @@ final class RenderJob {
               let cb = renderer.makeCommandBuffer() else { throw Exporter.ExportError.cannotWrite("Couldn't prepare a frame.") }
         let size = CGSize(width: CVPixelBufferGetWidth(frame), height: CVPixelBufferGetHeight(frame))
         let uniforms = FrameLayout.uniforms(project: project, sourceSize: size, outputTime: outputTime, timeMap: timeMap)
-        renderer.encode(frame: frame, uniforms: uniforms,
+        let cursor = FrameLayout.cursorUniforms(project: project, outputTime: outputTime, timeMap: timeMap)
+        renderer.encode(frame: frame, uniforms: uniforms, cursor: cursor,
                         backgroundImagePath: project.style.kind == .image ? project.style.imagePath : nil,
                         into: target, commandBuffer: cb)
         cb.addCompletedHandler { _ in _ = targetRef }
