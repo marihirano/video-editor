@@ -82,7 +82,7 @@ Before starting: install Xcode (free, from the App Store).
   **Try it:** File › New Recording…, allow screen recording, record a minute of real work with clicks and typing, pause once, stop with ⌥⇧⌘R. The recording should open in the editor with no system pointer in the video.
 - **P2. Cursor (built 2026-11-14, waiting for Mari's review):** draw the cursor from the log: smoothing, size, style, sharp cursor images, motion blur, click effects, idle hide
 
-  **Try it:** open one of your recordings (or make a new one with clicks, typing and fast moves). In the Style panel, scroll to Cursor and try each style, size, smoothing, motion blur, click effect and "Hide when still". Add a cut, a 4× clip, a crop and a zoom and check the cursor stays on the right spot; then export.
+  **Try it:** open one of your recordings (or make a new one with clicks, typing and fast moves). In the Style panel, open the Cursor tab and try each style, size, smoothing, motion blur, click effect and "Hide when still". Add a cut, a 4× clip, a crop and a zoom and check the cursor stays on the right spot; then export.
 - **P3. Tuning:** rounds on real recordings until capture and the cursor feel right
 
 Auto-zoom is dropped (Never, 2026-11-13). Cursor data is still recorded, because the cursor features need it.

@@ -59,14 +59,14 @@ enum DebugSnapshot {
                     overlayView = debugHighlight.contentView
                 }
             }
-            // VET_SNAPSHOT_CURSOR=1 draws the Style panel's Cursor section on its own (`…-cursor.png`),
-            // since it sits below the fold of the panel.
+            // VET_SNAPSHOT_CURSOR=1 opens the Style panel's Cursor tab and also draws the panel on its own
+            // (`…-cursor.png`), at a fixed height so the pinned Reset button shows.
             var cursorView: NSView?
             if env["VET_SNAPSHOT_CURSOR"] != nil {
-                let host = NSHostingView(rootView: VStack(alignment: .leading) { CursorSection() }
-                    .padding(Theme.panelPadding).frame(width: Theme.panelWidth, alignment: .leading)
+                model.styleTab = .cursor
+                let host = NSHostingView(rootView: InspectorView().frame(width: Theme.panelWidth, height: 520)
                     .background(Theme.panelFill).environmentObject(model))
-                let w = NSWindow(contentRect: NSRect(x: -2000, y: 0, width: Theme.panelWidth, height: 420), styleMask: .borderless, backing: .buffered, defer: false)
+                let w = NSWindow(contentRect: NSRect(x: -2000, y: 0, width: Theme.panelWidth, height: 520), styleMask: .borderless, backing: .buffered, defer: false)
                 w.contentView = host; w.orderBack(nil)
                 cursorView = host
             }

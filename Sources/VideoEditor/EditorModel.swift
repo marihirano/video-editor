@@ -35,6 +35,9 @@ final class EditorModel: ObservableObject {
     /// True while the scissors tool is out: the next click on the timeline cuts there.
     @Published private(set) var isCutMode = false
     private lazy var cutMode = CutMode { [weak self] in self?.endCutMode() }
+    /// Which tab the Style panel shows (the Cursor tab exists only for recordings made in the app).
+    enum StyleTab: Hashable { case general, cursor }
+    @Published var styleTab: StyleTab = .general
     @Published var errorMessage: String?
     @Published var export: ExportState?
 

@@ -8,8 +8,33 @@ struct InspectorView: View {
     private var style: FrameStyle { model.project?.style ?? FrameStyle() }
 
     var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            // Title and tabs stay put; only what's under them scrolls.
+            VStack(alignment: .leading, spacing: Theme.s5) {
+                PanelHeader(title: "Style")
+                if model.hasCursorData {
+                    PanelTabs(tabs: [EditorModel.StyleTab.general, .cursor], selected: $model.styleTab) { t in
+                        t == .general ? "General" : "Cursor"
+                    }
+                }
+            }
+            .padding([.horizontal, .top], Theme.panelPadding)
+            .frame(width: Theme.panelWidth, alignment: .leading)
+            if model.hasCursorData && model.styleTab == .cursor {
+                PanelScaffold {
+                    CursorSection()
+                } footer: {
+                    Button("Reset cursor style") { model.updateCursorLook { $0 = CursorLook() } }
+                        .buttonStyle(QuietButtonStyle(fullWidth: true))
+                }
+            } else {
+                general
+            }
+        }
+    }
+
+    private var general: some View {
         PanelScaffold {
-            PanelHeader(title: "Style")
             PanelSection("Background") { backgroundControls }
             PanelSection("Frame") {
                 slider("Padding", value: \.padding, range: Settings.paddingRange, unit: "%")
@@ -20,10 +45,7 @@ struct InspectorView: View {
                 slider("Blur", value: \.shadowBlur, range: Settings.shadowBlurRange, unit: " px")
                 slider("Distance", value: \.shadowOffset, range: Settings.shadowOffsetRange, unit: " px")
             }
-            if model.hasCursorData { CursorSection() }
-            Button("Reset style") {
-                model.edit(group: "style") { $0.style = FrameStyle(); $0.cursorLook = CursorLook() }
-            }
+            Button("Reset style") { model.updateStyle { $0 = FrameStyle() } }
                 .buttonStyle(QuietButtonStyle(fullWidth: true))
         }
     }
