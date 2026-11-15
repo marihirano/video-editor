@@ -597,6 +597,19 @@ do {
     check(t.shapes.map(\.shape) == [.arrow, .pointingHand, .iBeam] && t.shapes[0].time == 0, "cursor shape changes, first one at 0 s")
     check(t.shape(at: 0.03) == .pointingHand && t.shape(at: 0.5) == .iBeam, "shape at a given moment")
 
+    // A press on the app's own recording control (Stop, which isn't in the video) isn't logged, even if the
+    // release happens elsewhere or recording stops with it held; other clicks still are.
+    var stopLog = CursorLogBuilder(geometry: area, info: info)
+    stopLog.observe(videoTime: 0, global: CGPoint(x: 1650, y: 80), buttons: [], shape: .arrow)
+    stopLog.observe(videoTime: 0.1, global: CGPoint(x: 1650, y: 80), buttons: [.left], shape: .arrow)
+    stopLog.observe(videoTime: 0.2, global: CGPoint(x: 1650, y: 80), buttons: [], shape: .arrow)
+    stopLog.observe(videoTime: 0.3, global: CGPoint(x: 1700, y: 90), buttons: [.left], shape: .arrow, overOwnControls: true)
+    stopLog.observe(videoTime: 0.4, global: CGPoint(x: 1640, y: 70), buttons: [], shape: .arrow)
+    stopLog.observe(videoTime: 0.5, global: CGPoint(x: 1700, y: 90), buttons: [.right], shape: .arrow, overOwnControls: true)
+    stopLog.finish(at: 0.6)
+    check(stopLog.track.clicks.map(\.time) == [0.1, 0.2], "clicks on the app's own recording control aren't logged")
+    check(ScreenRecorder.liveBounds(ofWindow: 0) == nil, "no live bounds for a window that doesn't exist")
+
     // Save and reopen with cursor data; older slots still open.
     let source = tmp.appendingPathComponent("rec.mov")
     try Data("x".utf8).write(to: source)

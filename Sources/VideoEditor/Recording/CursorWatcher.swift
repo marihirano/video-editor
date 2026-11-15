@@ -8,10 +8,11 @@ final class CursorWatcher {
     private var timer: Timer?
     private var shapeTimer: Timer?
     private var shape: CursorShape?
-    private let observe: (CGPoint, Set<MouseButton>, CursorShape?) -> Void
+    private let observe: (CGPoint, Set<MouseButton>, CursorShape?, Bool) -> Void
 
-    /// `observe` gets the cursor's global position (top-left origin, points), the held buttons and the shape.
-    init(observe: @escaping (CGPoint, Set<MouseButton>, CursorShape?) -> Void) { self.observe = observe }
+    /// `observe` gets the cursor's global position (top-left origin, points), the held buttons, the shape and
+    /// whether it is over one of this app's own clickable windows (the recording control).
+    init(observe: @escaping (CGPoint, Set<MouseButton>, CursorShape?, Bool) -> Void) { self.observe = observe }
 
     func start() {
         shape = CursorShapes.current()
@@ -34,7 +35,9 @@ final class CursorWatcher {
         if mask & 1 != 0 { buttons.insert(.left) }
         if mask & 2 != 0 { buttons.insert(.right) }
         if mask & ~3 != 0 { buttons.insert(.other) }
-        observe(p, buttons, shape)
+        let m = NSEvent.mouseLocation
+        let overOwn = NSApp.windows.contains { $0.isVisible && !$0.ignoresMouseEvents && $0.frame.contains(m) }
+        observe(p, buttons, shape, overOwn)
     }
 }
 

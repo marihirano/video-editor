@@ -10,6 +10,8 @@ public struct CursorLogBuilder: Sendable {
     private var lastPoint: CGPoint?
     private var lastButtons: Set<MouseButton> = []
     private var lastShape: CursorShape?
+    /// Buttons pressed on the app's own recording controls: that press and its release aren't logged.
+    private var ignoredButtons: Set<MouseButton> = []
 
     public init(geometry: CaptureGeometry, info: CaptureInfo) {
         self.geometry = geometry
@@ -18,7 +20,10 @@ public struct CursorLogBuilder: Sendable {
 
     /// One poll. `videoTime` is nil before the first frame and while paused (nothing is logged then,
     /// but held buttons are remembered so a release after a pause isn't missed or doubled).
-    public mutating func observe(videoTime: Double?, global: CGPoint, buttons: Set<MouseButton>, shape: CursorShape?) {
+    /// `overOwnControls`: the cursor is over the app's own recording controls, which aren't in the video,
+    /// so a press there (like clicking Stop) would show a click effect on nothing.
+    public mutating func observe(videoTime: Double?, global: CGPoint, buttons: Set<MouseButton>, shape: CursorShape?,
+                                 overOwnControls: Bool = false) {
         guard let t = videoTime else { return }
         let p = geometry.pixel(fromGlobal: global)
         let moved = lastPoint.map { hypot($0.x - p.x, $0.y - p.y) >= Settings.cursorMinMovePixels } ?? true
@@ -29,6 +34,8 @@ public struct CursorLogBuilder: Sendable {
         for b in [MouseButton.left, .right, .other] {
             let now = buttons.contains(b), was = lastButtons.contains(b)
             if now != was {
+                if now, overOwnControls { ignoredButtons.insert(b); continue }
+                if !now, ignoredButtons.remove(b) != nil { continue }
                 if !moved, lastPoint != p {   // a click always has a sample right where it happened
                     track.samples.append(CursorSample(time: round6(t), x: round2(p.x), y: round2(p.y))); lastPoint = p
                 }
@@ -45,10 +52,10 @@ public struct CursorLogBuilder: Sendable {
     /// When recording stops: a button still held gets its release at the very end.
     public mutating func finish(at videoTime: Double) {
         guard let p = lastPoint else { return }
-        for b in [MouseButton.left, .right, .other] where lastButtons.contains(b) {
+        for b in [MouseButton.left, .right, .other] where lastButtons.contains(b) && !ignoredButtons.contains(b) {
             track.clicks.append(CursorClick(time: round6(videoTime), x: round2(p.x), y: round2(p.y), button: b, phase: .up))
         }
-        lastButtons = []
+        lastButtons = []; ignoredButtons = []
     }
 
     private func round2(_ v: Double) -> Double { (v * 100).rounded() / 100 }

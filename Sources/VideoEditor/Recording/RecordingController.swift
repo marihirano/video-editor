@@ -84,11 +84,12 @@ final class RecordingController: ObservableObject {
         guard hasPermission, let content = try? await SCShareableContent.excludingDesktopWindows(true, onScreenWindowsOnly: true) else { return }
         let me = getpid()
         windows = content.windows.compactMap { w in
+            let frame = ScreenRecorder.liveBounds(ofWindow: w.windowID) ?? w.frame
             guard let app = w.owningApplication, app.processID != me, w.windowLayer == 0, w.isOnScreen,
-                  w.frame.width >= 80, w.frame.height >= 60 else { return nil }
+                  frame.width >= 80, frame.height >= 60 else { return nil }
             let title = (w.title ?? "").trimmingCharacters(in: .whitespaces)
             return WindowChoice(id: w.windowID, app: app.applicationName, title: title, pid: app.processID,
-                                size: "\(Int(w.frame.width)) × \(Int(w.frame.height))")
+                                size: "\(Int(frame.width)) × \(Int(frame.height))")
         }
         if let id = windowID, !windows.contains(where: { $0.id == id }) { windowID = nil }
         if windowID == nil { windowID = windows.first?.id }
@@ -244,9 +245,10 @@ final class RecordingController: ObservableObject {
 
     private func beginRecording() {
         phase = .recording
-        let watcher = CursorWatcher { [weak self] point, buttons, shape in
+        let watcher = CursorWatcher { [weak self] point, buttons, shape, overOwn in
             guard let self, let recorder else { return }
-            log?.observe(videoTime: recorder.videoTime(atHost: ScreenRecorder.hostNow()), global: point, buttons: buttons, shape: shape)
+            log?.observe(videoTime: recorder.videoTime(atHost: ScreenRecorder.hostNow()), global: point, buttons: buttons,
+                         shape: shape, overOwnControls: overOwn)
         }
         watcher.start()
         self.watcher = watcher

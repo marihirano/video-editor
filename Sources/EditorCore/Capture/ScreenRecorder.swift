@@ -93,7 +93,10 @@ public final class ScreenRecorder: NSObject, SCStreamOutput, SCStreamDelegate, @
             frame = CaptureGeometry.globalRect(r, onDisplayAt: d.frame)
         case .window(let id):
             guard let w = content.windows.first(where: { $0.windowID == id }) else { throw RecorderError.targetGone }
-            filter = SCContentFilter(desktopIndependentWindow: w); kind = .window; frame = w.frame
+            filter = SCContentFilter(desktopIndependentWindow: w); kind = .window
+            // The window's live bounds: for a window in full screen, `SCWindow.frame` can still report its
+            // smaller windowed size, which made a small, letterboxed video and put the cursor in the wrong place.
+            frame = Self.liveBounds(ofWindow: w.windowID) ?? w.frame
         }
 
         let scale = Double(filter.pointPixelScale)
@@ -119,6 +122,15 @@ public final class ScreenRecorder: NSObject, SCStreamOutput, SCStreamDelegate, @
 
         let info = CaptureInfo(kind: kind, width: size.width, height: size.height, scale: scale, frame: frame, name: name)
         return (geometry, info)
+    }
+
+    /// A window's current bounds in global points (top-left origin), from the window server. Needs no permission.
+    public static func liveBounds(ofWindow id: CGWindowID) -> CGRect? {
+        guard let list = CGWindowListCopyWindowInfo([.optionIncludingWindow], id) as? [[String: Any]],
+              let info = list.first(where: { ($0[kCGWindowNumber as String] as? Int).map(CGWindowID.init) == id }),
+              let dict = info[kCGWindowBounds as String] as? NSDictionary,
+              let r = CGRect(dictionaryRepresentation: dict as CFDictionary), r.width >= 1, r.height >= 1 else { return nil }
+        return r
     }
 
     private func makeWriter(width: Int, height: Int) throws {
