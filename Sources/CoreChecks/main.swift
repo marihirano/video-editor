@@ -735,6 +735,15 @@ do {
     check(near(fb.blurFrom.x, 600, 1) && near(fb.position.x, 601, 1), String(format: "motion blur never streaks across a cut (from %.0f to %.0f)", fb.blurFrom.x, fb.position.x))
     let fm = FrameLayout.cursorFrame(project: timed, outputTime: 1.5, timeMap: tmap)!
     check(near(fm.position.x - fm.blurFrom.x, Settings.cursorMaxBlurSeconds * 100, 0.5), "motion blur covers the last moment of movement")
+    var fast = timed
+    fast.cursor.samples = (0...960).map { i in let t = Double(i) / 120; return CursorSample(time: t, x: t * 20000, y: 400) }
+    for blur in [1.0, 0.5] {
+        fast.cursorLook.motionBlur = blur
+        let ff = FrameLayout.cursorFrame(project: fast, outputTime: 1.5, timeMap: tmap)!
+        let streak = ff.position.x - ff.blurFrom.x
+        check(streak > 0 && near(streak, blur * Settings.cursorMaxBlurLengthCells * ff.cellSide, 0.5),
+              String(format: "a fast move's blur streak is capped (%.0f%%: %.1f px, cursor cell %.0f px)", blur * 100, streak, ff.cellSide))
+    }
 
     // A real export with the cursor drawn, through crop and zoom.
     let source = tmp.appendingPathComponent("cursor-source.mov")

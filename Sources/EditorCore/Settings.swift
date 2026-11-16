@@ -223,6 +223,10 @@ public enum Settings {
     /// (in finished-video seconds), so it only shows when the cursor moves fast.
     public static let defaultCursorMotionBlur = 0.5
     public static let cursorMaxBlurSeconds = 0.05
+    /// The longest the blur streak can get, as a share of the cursor's 32-point cell (the arrow is about
+    /// 0.65 of it), at motion blur 1; it scales with the slider. Keeps fast moves reading as a cursor,
+    /// not a grey smear (Mari, P3, 2026-11-16). At the default 50% the streak is at most ~0.3 of the cell.
+    public static let cursorMaxBlurLengthCells = 0.6
     /// The most copies of the cursor blended for one blurred frame.
     public static let cursorMaxBlurSamples = 24
     public static let defaultCursorClickEffect = CursorLook.ClickEffect.ripple

@@ -60,10 +60,17 @@ extension FrameLayout {
         // Motion blur: where the cursor was a moment earlier in the finished video (never across a cut).
         let piece = map.pieces[map.pieceIndex(atOutput: max(0, t))]
         let t0 = max(piece.outputStart, t - look.motionBlur * Settings.cursorMaxBlurSeconds)
-        let blurFrom = look.motionBlur > 0 ? motion.position(at: map.sourceTime(forOutput: t0)) : position
+        var blurFrom = look.motionBlur > 0 ? motion.position(at: map.sourceTime(forOutput: t0)) : position
         let scale = track.capture?.scale ?? 1
         let press = motion.pressAmount(at: s)
         let side = CursorArt.cellPoints * scale * look.size * (1 - (1 - Settings.cursorPressScale) * press)
+        // On fast moves the streak is capped, so the cursor's shape still shows.
+        let maxBlur = look.motionBlur * Settings.cursorMaxBlurLengthCells * side
+        let blurLength = hypot(blurFrom.x - position.x, blurFrom.y - position.y)
+        if blurLength > maxBlur {
+            let k = maxBlur / blurLength
+            blurFrom = CGPoint(x: position.x + (blurFrom.x - position.x) * k, y: position.y + (blurFrom.y - position.y) * k)
+        }
         var clicks: [(CGPoint, Double)] = []
         if look.clickEffect != .none {
             for c in track.clicks where c.phase == .down && c.button != .other {
