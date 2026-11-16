@@ -152,7 +152,7 @@ private final class AreaPickerView: NSView {
         cardModel.width = Int(r.width); cardModel.height = Int(r.height)
         let host = NSHostingView(rootView: AreaCard(
             model: cardModel,
-            resize: { [weak self] w, h in self?.resize(toWidth: w, height: h) },
+            resize: { [weak self] w, h, refocus in self?.resize(toWidth: w, height: h, refocus: refocus) },
             record: { [weak self] in if let r = self?.rect { self?.finish?(r.integral) } },
             cancel: { [weak self] in self?.finish?(nil) }))
         host.setFrameSize(host.fittingSize)
@@ -168,7 +168,7 @@ private final class AreaPickerView: NSView {
     }
 
     /// Typed size: the area grows or shrinks around its centre (Mari), kept on the display and at least the minimum size.
-    private func resize(toWidth w: Int, height h: Int) {
+    private func resize(toWidth w: Int, height h: Int, refocus: Bool) {
         guard let r = rect else { return }
         let minSide = Settings.recordingMinAreaPoints
         let nw = min(max(CGFloat(w), minSide), bounds.width)
@@ -178,7 +178,7 @@ private final class AreaPickerView: NSView {
         rect = CGRect(x: x, y: y, width: nw, height: nh).integral
         cardModel.width = Int(rect!.width); cardModel.height = Int(rect!.height)
         placeCard()
-        window?.makeFirstResponder(self)   // so Return now means Record Video
+        if refocus { window?.makeFirstResponder(self) }   // after Return, so the next Return means Record Video
         needsDisplay = true
     }
 
@@ -255,7 +255,7 @@ final class AreaCardModel: ObservableObject {
 /// (the area changes around its centre), then Record Video.
 private struct AreaCard: View {
     @ObservedObject var model: AreaCardModel
-    let resize: (Int, Int) -> Void
+    let resize: (Int, Int, Bool) -> Void
     let record: () -> Void
     let cancel: () -> Void
     @State private var w = ""
@@ -301,7 +301,7 @@ private struct AreaCard: View {
     /// `submitted` (Return in a box) always hands focus back, so the next Return records.
     private func commit(submitted: Bool = false) {
         guard let nw = Int(w), let nh = Int(h), nw > 0, nh > 0 else { sync(); return }
-        if submitted || nw != model.width || nh != model.height { resize(nw, nh) } else { sync() }
+        if submitted || nw != model.width || nh != model.height { resize(nw, nh, submitted) } else { sync() }
     }
 
     private func box(_ text: Binding<String>, _ field: Field) -> some View {
@@ -313,7 +313,12 @@ private struct AreaCard: View {
             .onChange(of: text.wrappedValue) { text.wrappedValue = text.wrappedValue.filter(\.isNumber) }
             .onSubmit { commit(submitted: true) }
             .onExitCommand(perform: cancel)
+            .onKeyPress(.tab) {   // Tab and Shift-Tab swap between the two boxes
+                focus = field == .width ? .height : .width
+                return .handled
+            }
             .frame(width: 76).padding(.vertical, Theme.s1 + 1)
-            .background(RoundedRectangle(cornerRadius: Theme.radius).fill(Color.white.opacity(field == focus ? 0.12 : 0.07)))
+            .background(RoundedRectangle(cornerRadius: Theme.radius).fill(Color.white.opacity(field == focus ? 0.14 : 0.07)))
+            .overlay(RoundedRectangle(cornerRadius: Theme.radius).strokeBorder(Color(red: 0, green: 0.584, blue: 0.639), lineWidth: field == focus ? 1.5 : 0))
     }
 }
