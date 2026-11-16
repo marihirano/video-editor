@@ -70,7 +70,7 @@ extension ContentView {
         if !showInspector { withAnimation(.easeInOut(duration: 0.2)) { showInspector = true } }
     }
 
-    /// Top bar: title in the middle; undo, redo, side-panel toggle and Export on the right.
+    /// Top bar: title in the middle; delete, undo, redo, side-panel toggle and Export on the right.
     /// No glass pills behind the title or the icon buttons; Export is a plain blue button with the app's usual corners.
     @ToolbarContentBuilder var toolbar: some ToolbarContent {
         ToolbarItem(placement: .principal) {
@@ -80,6 +80,11 @@ extension ContentView {
         // Built with the macOS 26+ SDK (Xcode), the toolbar packs the buttons right beside the title
         // unless a flexible space pushes them to the right edge.
         if #available(macOS 26, *) { ToolbarSpacer(.flexible, placement: .primaryAction) }
+        ToolbarItem(placement: .primaryAction) {
+            Button { model.deleteVideo() } label: { Label("Delete Video", systemImage: "trash").font(.system(size: 13, weight: .light)) }
+                .help("Delete this video").disabled(model.project == nil)
+        }
+        .withoutGlass()
         ToolbarItem(placement: .primaryAction) {
             Button { model.undo() } label: { Label("Undo", systemImage: "arrow.uturn.backward").font(.system(size: 12, weight: .light)) }
                 .help("Undo (⌘Z)").disabled(!model.canUndo)

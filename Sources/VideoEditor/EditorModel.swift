@@ -404,6 +404,36 @@ final class EditorModel: ObservableObject {
         }
     }
 
+    // MARK: Deleting the video
+
+    /// Top-bar bin (Mari): asks once, then moves this video's project (and the recording, when it was made
+    /// in the app and lives in Movies › Video Editor) to the Trash and goes back to the empty window.
+    /// A video imported from somewhere else is never trashed, only its project file.
+    func deleteVideo() {
+        guard project != nil else { return }
+        let alert = NSAlert()
+        alert.messageText = "Delete “\(displayName)”?"
+        alert.informativeText = "This moves the video and its edits to the Trash."
+        alert.addButton(withTitle: "Delete").hasDestructiveAction = true
+        alert.addButton(withTitle: "Cancel")
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
+        playback.pause()
+        playback.player.replaceCurrentItem(with: nil)
+        var urls: [URL] = []
+        if let projectURL { urls.append(projectURL) }
+        if let sourceURL, isInRecordingsFolder(sourceURL) || isFreshRecording { urls.append(sourceURL) }
+        for url in urls { try? FileManager.default.trashItem(at: url, resultingItemURL: nil) }
+        project = nil; savedProject = nil; history.reset()
+        sourceURL = nil; projectURL = nil; sourceDuration = 0
+        hoverTime = nil; editTime = nil; selectedClip = nil; selectedZoom = nil; isCropMode = false
+        isFreshRecording = false
+    }
+
+    private func isInRecordingsFolder(_ url: URL) -> Bool {
+        url.standardizedFileURL.pathComponents.contains(Settings.recordingsFolderName)
+            && url.standardizedFileURL.path.contains("/Movies/")
+    }
+
     // MARK: Exporting
 
     /// Export button / menu: opens the options sheet. "Export…" in the sheet then asks where to save.

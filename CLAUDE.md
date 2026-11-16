@@ -121,6 +121,8 @@ node ~/design-project-drive/sweep.mjs add --type <type> --url <url> --label "<sh
 
 Newest first. Each entry: date, decision, reason.
 
+- **2026-11-16** — **Delete-video bin in the top bar, left of Undo (Mari's mockup).** Clicking asks once ("Delete “name”? This moves the video and its edits to the Trash."), then trashes the project and, for recordings made in the app (Movies › Video Editor), the video too, and returns to the empty window. An imported video from elsewhere is never trashed, only its project file. Claude's calls: the one confirmation; `EditorModel.deleteVideo()`. *Why:* Mari's request. **Colour picker X:** the From / To / Color pickers open macOS's own colour window, whose title bar (and its "…" menu) the app can't change; see Open questions.
+
 - **2026-11-16** — **P3 Tuning signed off; phase 2 done (Mari).** Capture and cursor stand as built, with the round 0 fixes and the shorter motion blur. *Why:* Mari's review.
 
 - **2026-11-16** — **P3 round 1: motion blur streak capped (Mari).** On fast moves the blur is at most 30% of the cursor's 32-pt cell at the default 50% (60% at full blur), so it still looks like an arrow; slow moves are unchanged. Mari said the rest of Claude's tuning list (ripple on white, size, snap to clicks) looks good as is. *Why:* the cursor turned into a long grey smear on fast moves.
@@ -193,6 +195,8 @@ Newest first. Each entry: date, decision, reason.
 ## Session log
 
 Newest first. One or two lines per session.
+
+- **2026-11-16** — Visual edits session: added the delete-video bin in the top bar (snapshots light/dark checked, checks pass, app rebuilt). Colour-picker X not built (system window). Committed; not pushed.
 
 - **2026-11-16** — Mari signed off P3, so phase 2 is done; docs updated. Committed; not pushed. Next: re-run the edge-case QA.
 
@@ -267,6 +271,7 @@ Newest first. One or two lines per session.
 
 ## Open questions
 
+- **Colour picker close button (2026-11-16):** the picker is macOS's own window, so the "…" menu can't be swapped for an X. Option: build our own small picker popover with an X. Waiting for Mari.
 - **QA findings: phase 2 is done (2026-11-16), so this is next (Mari, 2026-11-14).** The edge-case QA report (`QA-REPORT.md` + `qa-screenshots/`) lives only on branch `refs/heads/claude/qa-edge-cases-7a3ac3` (`git show refs/heads/claude/qa-edge-cases-7a3ac3:QA-REPORT.md`). After P3, run the QA again on the finished app and fix everything then. Still open from it: how long videos handle small zooms (B1): Claude recommends a timeline zoom control plus a minimum on-screen width for zoom blocks.
 
 - **Autosave** is Maybe. Claude recommends building it into capture in phase 2, because it's cheap there.
