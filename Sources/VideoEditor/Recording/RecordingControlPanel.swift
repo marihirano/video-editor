@@ -8,13 +8,15 @@ import SwiftUI
 @MainActor
 final class RecordingControlPanel {
     private let panel: NSPanel
+    /// The view's padding is bigger now (room for its shadow), so positions pull back by the difference.
+    private let extraInset: CGFloat = 16
 
     init(controller: RecordingController) {
         panel = NSPanel(contentRect: .zero, styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
         panel.level = .statusBar                          // above the area dimming and the window border
         panel.isOpaque = false
         panel.backgroundColor = .clear
-        panel.hasShadow = true
+        panel.hasShadow = false                           // the system's shadow draws a pale rim; the view draws its own
         panel.isMovableByWindowBackground = true
         panel.hidesOnDeactivate = false
         panel.isReleasedWhenClosed = false
@@ -30,7 +32,7 @@ final class RecordingControlPanel {
         guard let screen = screen ?? NSScreen.main else { return }
         let size = panel.frame.size
         let v = screen.visibleFrame
-        panel.setFrameOrigin(NSPoint(x: v.midX - size.width / 2, y: v.minY + Settings.recordingControlBottomGap))
+        panel.setFrameOrigin(NSPoint(x: v.midX - size.width / 2, y: v.minY + Settings.recordingControlBottomGap - extraInset))
         panel.orderFrontRegardless()
     }
 
@@ -41,8 +43,8 @@ final class RecordingControlPanel {
         let v = screen.visibleFrame
         let gap = Settings.recordingControlAreaGap
         let x = min(max(area.midX - size.width / 2, v.minX), v.maxX - size.width)
-        var y = area.minY - gap - size.height
-        if y < v.minY { y = area.maxY + gap }
+        var y = area.minY - gap - size.height + extraInset
+        if y < v.minY { y = area.maxY + gap - extraInset }
         if y + size.height > v.maxY { y = max(area.minY + gap, v.minY) }
         panel.setFrameOrigin(NSPoint(x: x, y: y))
         panel.orderFrontRegardless()
@@ -83,9 +85,10 @@ private struct RecordingControlView: View {
             .disabled(busy)
         }
         .frame(height: 44)
-        .background(RoundedRectangle(cornerRadius: 8).fill(Color(white: 0.12)))
+        .background(RoundedRectangle(cornerRadius: 14).fill(Color(white: 0.2, opacity: 0.97)))
+        .shadow(color: .black.opacity(0.35), radius: 16, y: 6)   // same as the area card
         .fixedSize()
-        .padding(Theme.s1)
+        .padding(20)
     }
 
     private func segment<Content: View>(help: String, action: @escaping () -> Void, @ViewBuilder content: () -> Content) -> some View {
