@@ -80,36 +80,39 @@ extension ContentView {
         // Built with the macOS 26+ SDK (Xcode), the toolbar packs the buttons right beside the title
         // unless a flexible space pushes them to the right edge.
         if #available(macOS 26, *) { ToolbarSpacer(.flexible, placement: .primaryAction) }
-        ToolbarItem(placement: .primaryAction) {
-            Button { model.deleteVideo() } label: { Label("Delete Video", systemImage: "trash").font(.system(size: 13, weight: .light)) }
-                .help("Delete this video").disabled(model.project == nil)
-        }
-        .withoutGlass()
-        ToolbarItem(placement: .primaryAction) {
-            Button { model.undo() } label: { Label("Undo", systemImage: "arrow.uturn.backward").font(.system(size: 12, weight: .light)) }
-                .help("Undo (⌘Z)").disabled(!model.canUndo)
-        }
-        .withoutGlass()
-        ToolbarItem(placement: .primaryAction) {
-            Button { model.redo() } label: { Label("Redo", systemImage: "arrow.uturn.forward").font(.system(size: 12, weight: .light)) }
-                .help("Redo (⇧⌘Z)").disabled(!model.canRedo)
-        }
-        .withoutGlass()
-        ToolbarItem(placement: .primaryAction) {
-            Button { withAnimation(.easeInOut(duration: 0.2)) { showInspector.toggle() } } label: {
-                Label("Side Panel", systemImage: "sidebar.right").font(.system(size: 13, weight: .light))
+        // Nothing to undo, delete or export on the first screen, so the buttons only show with a video open (Mari).
+        if model.project != nil {
+            ToolbarItem(placement: .primaryAction) {
+                Button { model.deleteVideo() } label: { Label("Delete Video", systemImage: "trash").font(.system(size: 13, weight: .light)) }
+                    .help("Delete this video").disabled(model.project == nil)
             }
-            .help(showInspector ? "Hide the style panel" : "Show the style panel")
-            .disabled(model.project == nil)
+            .withoutGlass()
+            ToolbarItem(placement: .primaryAction) {
+                Button { model.undo() } label: { Label("Undo", systemImage: "arrow.uturn.backward").font(.system(size: 12, weight: .light)) }
+                    .help("Undo (⌘Z)").disabled(!model.canUndo)
+            }
+            .withoutGlass()
+            ToolbarItem(placement: .primaryAction) {
+                Button { model.redo() } label: { Label("Redo", systemImage: "arrow.uturn.forward").font(.system(size: 12, weight: .light)) }
+                    .help("Redo (⇧⌘Z)").disabled(!model.canRedo)
+            }
+            .withoutGlass()
+            ToolbarItem(placement: .primaryAction) {
+                Button { withAnimation(.easeInOut(duration: 0.2)) { showInspector.toggle() } } label: {
+                    Label("Side Panel", systemImage: "sidebar.right").font(.system(size: 13, weight: .light))
+                }
+                .help(showInspector ? "Hide the style panel" : "Show the style panel")
+                .disabled(model.project == nil)
+            }
+            .withoutGlass()
+            ToolbarItem(placement: .primaryAction) {
+                Button("Export") { model.startExport() }
+                    .buttonStyle(PrimaryButtonStyle())
+                    .disabled(model.project == nil || model.export != nil)
+                    .padding(.trailing, Theme.s4)   // lines Export's right edge up with the side panel's right edge
+            }
+            .withoutGlass()
         }
-        .withoutGlass()
-        ToolbarItem(placement: .primaryAction) {
-            Button("Export") { model.startExport() }
-                .buttonStyle(PrimaryButtonStyle())
-                .disabled(model.project == nil || model.export != nil)
-                .padding(.trailing, Theme.s4)   // lines Export's right edge up with the side panel's right edge
-        }
-        .withoutGlass()
     }
 }
 
