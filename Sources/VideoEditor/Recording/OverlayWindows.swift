@@ -255,8 +255,8 @@ private struct AreaCard: View {
     }
 
     private func box(_ s: String) -> some View {
-        Text(s).font(Theme.font(16).monospacedDigit())
-            .frame(width: 76).padding(.vertical, Theme.s2)
+        Text(s).font(Theme.fontBody.monospacedDigit())
+            .frame(width: 76).padding(.vertical, Theme.s1 + 1)
             .background(RoundedRectangle(cornerRadius: Theme.radius).fill(Color.white.opacity(0.07)))
     }
 }
