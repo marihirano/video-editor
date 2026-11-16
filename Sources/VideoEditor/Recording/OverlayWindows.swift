@@ -319,6 +319,6 @@ private struct AreaCard: View {
             }
             .frame(width: 76).padding(.vertical, Theme.s1 + 1)
             .background(RoundedRectangle(cornerRadius: Theme.radius).fill(Color.white.opacity(field == focus ? 0.14 : 0.07)))
-            .overlay(RoundedRectangle(cornerRadius: Theme.radius).strokeBorder(Color(red: 0, green: 0.584, blue: 0.639), lineWidth: field == focus ? 1.5 : 0))
+            .overlay(RoundedRectangle(cornerRadius: Theme.radius).strokeBorder(Color(nsColor: .controlAccentColor), lineWidth: field == focus ? 1.5 : 0))
     }
 }

@@ -121,7 +121,7 @@ node ~/design-project-drive/sweep.mjs add --type <type> --url <url> --label "<sh
 
 Newest first. Each entry: date, decision, reason.
 
-- **2026-11-16** — **Size boxes: a teal ring and lighter fill while editing; Tab / Shift-Tab swap between width and height (Mari).** Tab applies the box you leave without taking focus away from the other. *Why:* Mari's request.
+- **2026-11-16** — **Size boxes: a ring in the Mac's own accent colour (blue by default, not the app teal) and lighter fill while editing; Tab / Shift-Tab swap between width and height (Mari).** Tab applies the box you leave without taking focus away from the other. *Why:* Mari's request.
 
 - **2026-11-16** — **Window corners now match other Mac apps (Mari's comparison with Claude and Figma).** Cause: SwiftPM stamps the program as built with the macOS 14 SDK, so macOS drew old-style windows (12 pt corners). `scripts/build-app.sh` now relabels it with the real SDK (`vtool`), and the window reads 26 pt like the others. Side effects to watch: traffic lights sit a little lower and the system's colour wells look like pills. Debug snapshot's `.txt` now logs `radius=`. *Why:* Mari's request.
 - **2026-11-16** — **The area card's size boxes are editable (Mari).** Type a width or height, then Return, Tab or click away: the area grows or shrinks around its centre, is kept on the display and at least `Settings.recordingMinAreaPoints`, and the card stays in the middle. After Return, the next Return records. Esc cancels. Digits only. *Why:* Mari's request.
