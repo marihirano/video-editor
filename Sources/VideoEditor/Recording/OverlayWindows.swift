@@ -135,6 +135,7 @@ private final class AreaPickerView: NSView {
     private var dragging = false
     private var showHint = true
     private var card: NSHostingView<AreaCard>?
+    private let cardModel = AreaCardModel()
 
     override var isFlipped: Bool { true }   // top-left origin, like the capture's coordinates
     override var acceptsFirstResponder: Bool { true }
@@ -148,11 +149,37 @@ private final class AreaPickerView: NSView {
 
     private func showCard(for r: CGRect) {
         removeCard()
-        let host = NSHostingView(rootView: AreaCard(width: Int(r.width), height: Int(r.height), record: { [weak self] in self?.finish?(r.integral) }))
-        let size = host.fittingSize
-        host.frame = CGRect(x: (r.midX - size.width / 2).rounded(), y: (r.midY - size.height / 2).rounded(), width: size.width, height: size.height)
-        addSubview(host)
+        cardModel.width = Int(r.width); cardModel.height = Int(r.height)
+        let host = NSHostingView(rootView: AreaCard(
+            model: cardModel,
+            resize: { [weak self] w, h in self?.resize(toWidth: w, height: h) },
+            record: { [weak self] in if let r = self?.rect { self?.finish?(r.integral) } },
+            cancel: { [weak self] in self?.finish?(nil) }))
+        host.setFrameSize(host.fittingSize)
         card = host
+        addSubview(host)
+        placeCard()
+    }
+
+    /// The card sits in the middle of the area.
+    private func placeCard() {
+        guard let card, let r = rect else { return }
+        card.setFrameOrigin(CGPoint(x: (r.midX - card.frame.width / 2).rounded(), y: (r.midY - card.frame.height / 2).rounded()))
+    }
+
+    /// Typed size: the area grows or shrinks around its centre (Mari), kept on the display and at least the minimum size.
+    private func resize(toWidth w: Int, height h: Int) {
+        guard let r = rect else { return }
+        let minSide = Settings.recordingMinAreaPoints
+        let nw = min(max(CGFloat(w), minSide), bounds.width)
+        let nh = min(max(CGFloat(h), minSide), bounds.height)
+        var x = r.midX - nw / 2, y = r.midY - nh / 2
+        x = min(max(x, 0), bounds.width - nw); y = min(max(y, 0), bounds.height - nh)   // nudged back on if it would leave the display
+        rect = CGRect(x: x, y: y, width: nw, height: nh).integral
+        cardModel.width = Int(rect!.width); cardModel.height = Int(rect!.height)
+        placeCard()
+        window?.makeFirstResponder(self)   // so Return now means Record Video
+        needsDisplay = true
     }
 
     override func mouseDown(with e: NSEvent) {
@@ -219,18 +246,29 @@ private final class AreaPickerView: NSView {
     }
 }
 
-/// The card in the middle of the chosen area (Mari's third mockup): its size in two boxes, then Record Video.
+final class AreaCardModel: ObservableObject {
+    @Published var width = 0
+    @Published var height = 0
+}
+
+/// The card in the middle of the chosen area (Mari's third mockup): its size in two boxes you can type in
+/// (the area changes around its centre), then Record Video.
 private struct AreaCard: View {
-    let width: Int
-    let height: Int
+    @ObservedObject var model: AreaCardModel
+    let resize: (Int, Int) -> Void
     let record: () -> Void
+    let cancel: () -> Void
+    @State private var w = ""
+    @State private var h = ""
+    @FocusState private var focus: Field?
+    private enum Field { case width, height }
 
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: Theme.s2) {
-                box("\(width)")
+                box($w, .width)
                 Text("×").font(Theme.fontBody)
-                box("\(height)")
+                box($h, .height)
             }
             .padding(.vertical, Theme.s3)
             Rectangle().fill(Color.white.opacity(0.12)).frame(height: 1)
@@ -252,11 +290,30 @@ private struct AreaCard: View {
         .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(Color.white.opacity(0.08)))
         .shadow(color: .black.opacity(0.35), radius: 16, y: 6)
         .padding(20)   // room for the shadow
+        .onAppear(perform: sync)
+        .onChange(of: model.width) { sync() }
+        .onChange(of: model.height) { sync() }
+        .onChange(of: focus) { commit() }   // leaving a box applies it too
     }
 
-    private func box(_ s: String) -> some View {
-        Text(s).font(Theme.fontBody.monospacedDigit())
+    private func sync() { w = "\(model.width)"; h = "\(model.height)" }
+
+    /// `submitted` (Return in a box) always hands focus back, so the next Return records.
+    private func commit(submitted: Bool = false) {
+        guard let nw = Int(w), let nh = Int(h), nw > 0, nh > 0 else { sync(); return }
+        if submitted || nw != model.width || nh != model.height { resize(nw, nh) } else { sync() }
+    }
+
+    private func box(_ text: Binding<String>, _ field: Field) -> some View {
+        TextField("", text: text)
+            .textFieldStyle(.plain)
+            .multilineTextAlignment(.center)
+            .font(Theme.fontBody.monospacedDigit())
+            .focused($focus, equals: field)
+            .onChange(of: text.wrappedValue) { text.wrappedValue = text.wrappedValue.filter(\.isNumber) }
+            .onSubmit { commit(submitted: true) }
+            .onExitCommand(perform: cancel)
             .frame(width: 76).padding(.vertical, Theme.s1 + 1)
-            .background(RoundedRectangle(cornerRadius: Theme.radius).fill(Color.white.opacity(0.07)))
+            .background(RoundedRectangle(cornerRadius: Theme.radius).fill(Color.white.opacity(field == focus ? 0.12 : 0.07)))
     }
 }
