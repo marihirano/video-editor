@@ -22,9 +22,8 @@ final class RecordingController: ObservableObject {
     @Published private(set) var hasPermission = ScreenRecordingPermission.isGranted
 
     // The Record window's choices. Kind, display and "hide icons" are remembered between launches.
-    @Published var kind: Kind = Kind(rawValue: UserDefaults.standard.string(forKey: "recordKind") ?? "") ?? .display {
-        didSet { UserDefaults.standard.set(kind.rawValue, forKey: "recordKind") }
-    }
+    // Only areas are offered now (Mari, 2026-11-16); the other kinds stay in the engine but nothing chooses them.
+    @Published var kind: Kind = .area
     @Published var displayID: CGDirectDisplayID = CGMainDisplayID()
     @Published var windowID: CGWindowID?
     @Published var area: (display: CGDirectDisplayID, rect: CGRect)?
@@ -58,11 +57,12 @@ final class RecordingController: ObservableObject {
     // MARK: The Record window
 
     /// File › New Recording / the empty window's Record button.
+    /// With permission it goes straight to the dimmed screens to drag an area; without, it shows the permission help.
     func showSetup() {
         guard !isBusy else { return }
         refreshPermission()
+        if hasPermission { pickArea(); return }
         setupShown = true
-        Task { await loadSources() }
     }
 
     func refreshPermission() { hasPermission = ScreenRecordingPermission.isGranted || debugAssumePermission }
@@ -95,7 +95,7 @@ final class RecordingController: ObservableObject {
         if windowID == nil { windowID = windows.first?.id }
     }
 
-    /// Area: hides the Record window, lets the person drag a rectangle, then brings it back.
+    /// Area: hides the editor, lets the person drag a rectangle, then brings it back.
     func pickArea() {
         setupShown = false
         let shown = visibleMainWindows()
@@ -104,16 +104,15 @@ final class RecordingController: ObservableObject {
         picker.run { [weak self] result in
             guard let self else { return }
             pickingArea = false
-            guard let result else {                       // Esc: back to the Record window
+            guard let result else {                       // Esc: back to the editor
                 shown.forEach { $0.makeKeyAndOrderFront(nil) }
-                setupShown = true
                 return
             }
             // Straight into recording (Mari): no trip back to the Record window.
             area = (result.0, result.1); kind = .area
             alreadyHidden = shown
             start()
-            if phase == .idle { alreadyHidden = nil; shown.forEach { $0.makeKeyAndOrderFront(nil) }; setupShown = true }
+            if phase == .idle { alreadyHidden = nil; shown.forEach { $0.makeKeyAndOrderFront(nil) } }
         }
     }
 
@@ -133,7 +132,7 @@ final class RecordingController: ObservableObject {
         switch phase {
         case .idle:
             refreshPermission()
-            if !hasPermission || (kind == .area && area == nil) || (kind == .window && windowID == nil) {
+            if !hasPermission || area == nil {
                 NSApp.activate(ignoringOtherApps: true); showSetup(); return
             }
             start()

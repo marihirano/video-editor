@@ -44,20 +44,20 @@ enum DebugSnapshot {
                 model.setOutput { $0.format = format == "gif" ? .gif : .mp4 }
                 model.startExport()
             }
-            // VET_SNAPSHOT_RECORD=display|window|area opens the Record window on that choice (`…-sheet.png`)
+            // VET_SNAPSHOT_RECORD=hint|area draws the area picker (`…-overlay.png`)
             // and shows the floating recording control (`…-panel.png`) as if recording for 12 s.
             var panelView: NSView?
             var overlayView: NSView?
-            if let kind = env["VET_SNAPSHOT_RECORD"] {
+            if let kind = env["VET_SNAPSHOT_RECORD"] {   // "hint" = the drag hint, anything else = an area chosen
                 let rec = RecordingController.shared
-                rec.kind = RecordingController.Kind(rawValue: kind) ?? .display
-                if rec.kind == .area { rec.area = (CGMainDisplayID(), CGRect(x: 200, y: 150, width: 1280, height: 720)) }
-                rec.showSetup()
+                let area = CGRect(x: 200, y: 150, width: 1280, height: 720)
+                rec.area = (CGMainDisplayID(), area)
                 panelView = rec.debugControlPanelView()
-                if rec.kind == .area, let a = rec.area, let screen = NSScreen.with(displayID: a.display) {
-                    debugHighlight.showArea(a.rect, on: screen)
-                    overlayView = debugHighlight.contentView
-                }
+                let size = NSScreen.main?.frame.size ?? CGSize(width: 1728, height: 1117)
+                let v = AreaPicker.debugView(size: size, area: kind == "hint" ? nil : area)
+                let w = NSWindow(contentRect: NSRect(origin: NSPoint(x: -4000, y: 0), size: size), styleMask: .borderless, backing: .buffered, defer: false)
+                w.contentView = v; w.orderBack(nil)
+                overlayView = v
             }
             // VET_SNAPSHOT_CURSOR=1 opens the Style panel's Cursor tab and also draws the panel on its own
             // (`…-cursor.png`), at a fixed height so the pinned Reset button shows.
