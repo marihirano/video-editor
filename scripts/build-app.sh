@@ -12,6 +12,11 @@ BIN="$(swift build -c release --product VideoEditor --show-bin-path)/VideoEditor
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN" "$APP/Contents/MacOS/VideoEditor"
+# SwiftPM labels the program as built with the macOS 14 SDK, so macOS draws old-style windows (sharper
+# corners, no new toolbar look). Relabel it with the SDK that really built it. (Mari, 2026-11-16)
+vtool -set-build-version macos 14.0 "$(xcrun --show-sdk-version)" -replace \
+    -output "$APP/Contents/MacOS/VideoEditor.tmp" "$APP/Contents/MacOS/VideoEditor"
+mv "$APP/Contents/MacOS/VideoEditor.tmp" "$APP/Contents/MacOS/VideoEditor"
 cp Resources/Info.plist "$APP/Contents/Info.plist"
 # App icon (redraw it with: swift scripts/make-icon.swift)
 cp Resources/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"

@@ -97,7 +97,9 @@ enum DebugSnapshot {
                     view.cacheDisplay(in: view.bounds, to: rep)
                     try? rep.representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: file))
                 }
-                let line = "shape=\(model.project?.output.shape.rawValue ?? "-") zooms=\(model.zooms.count) crop=\(String(describing: model.project?.crop)) project=\(model.project != nil) playing=\(model.playback.isPlaying) time=\(model.playback.currentTime) videoFramesDrawn=\(model.drawer?.videoFramesDrawn ?? -1)\n"
+                let win = NSApp.windows.first(where: { $0.isVisible && !$0.isSheet })
+                let radius: Any = (win?.responds(to: Selector(("_cornerRadius"))) ?? false) ? (win?.value(forKey: "_cornerRadius") ?? "nil") : "n/a"
+                let line = "radius=\(radius) tbstyle=\(win?.toolbarStyle.rawValue ?? -1) toolbar=\(String(describing: win?.toolbar.map { $0.items.count })) style=\(String(describing: win?.styleMask.rawValue)) shape=\(model.project?.output.shape.rawValue ?? "-") zooms=\(model.zooms.count) crop=\(String(describing: model.project?.crop)) project=\(model.project != nil) playing=\(model.playback.isPlaying) time=\(model.playback.currentTime) videoFramesDrawn=\(model.drawer?.videoFramesDrawn ?? -1)\n"
                 try? line.write(toFile: path + ".txt", atomically: true, encoding: .utf8)
                 exit(0)   // quit without the save prompt (the snapshot may have made edits)
             }
