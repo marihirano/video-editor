@@ -20,7 +20,7 @@ This file is the shared memory for every Claude session on this project. Any age
 ## Current status
 
 - **Local folder:** `~/video-editing-tool` (the old name, on purpose, so past conversations stay visible in the Claude app). Everything else is named `video-editor`. Don't rename the folder.
-- **Phase:** **MVP done.** Mari signed off M1 (2026-11-10) and M2–M5 plus the polish pass (2026-11-12). Light mode reviewed and committed (2026-11-13). Video shape signed off. **Phase 2, P1 Capture signed off (2026-11-14):** Mari tried real recordings and the feedback rounds are built and pushed. **P2 Cursor signed off and pushed (2026-11-14).** **P3 Tuning started (2026-11-14):** Claude checked Mari's three recordings, fixed two bugs (below) and sent her a tuning list. Round 1 (2026-11-16): Mari asked only for shorter motion blur on fast moves (the rest looks good); built, waiting for her review.
+- **Phase:** **MVP done.** Mari signed off M1 (2026-11-10) and M2–M5 plus the polish pass (2026-11-12). Light mode reviewed and committed (2026-11-13). Video shape signed off. **Phase 2, P1 Capture signed off (2026-11-14):** Mari tried real recordings and the feedback rounds are built and pushed. **P2 Cursor signed off and pushed (2026-11-14).** **P3 Tuning signed off (2026-11-16), so phase 2 is done.** Next: re-run the edge-case QA on the finished app and fix its findings (see Open questions). P3 history: Claude checked Mari's three recordings, fixed two bugs (below) and sent her a tuning list. Round 1 (2026-11-16): Mari asked only for shorter motion blur on fast moves (the rest looks good); built and signed off.
 - Git repo on branch `main`, remote `origin` = https://github.com/marihirano/video-editor.git. Pushed to GitHub on 2026-11-10 (Mari approved). The `gh` tool isn't installed; use plain `git`.
 - **Build the app:** `scripts/build-app.sh` → `build/Video Editor.app` (release build, ad-hoc signed). **Run checks:** `swift run CoreChecks` (project save/reopen, shader compile, layout, a real 1080p hardware export of a generated test video). XCTest and Swift Testing don't run without Xcode, so checks are a plain program.
 - **Screenshots:** the terminal has no screen-recording permission and computer use was off. `VET_SNAPSHOT=/path.png` makes the app save its window, log whether the preview drew video frames (`/path.png.txt`), and quit; launch with `open -n --env VET_SNAPSHOT=… -a "build/Video Editor.app" video.mov`. The Metal preview itself is blank in that picture.
@@ -121,6 +121,8 @@ node ~/design-project-drive/sweep.mjs add --type <type> --url <url> --label "<sh
 
 Newest first. Each entry: date, decision, reason.
 
+- **2026-11-16** — **P3 Tuning signed off; phase 2 done (Mari).** Capture and cursor stand as built, with the round 0 fixes and the shorter motion blur. *Why:* Mari's review.
+
 - **2026-11-16** — **P3 round 1: motion blur streak capped (Mari).** On fast moves the blur is at most 30% of the cursor's 32-pt cell at the default 50% (60% at full blur), so it still looks like an arrow; slow moves are unchanged. Mari said the rest of Claude's tuning list (ripple on white, size, snap to clicks) looks good as is. *Why:* the cursor turned into a long grey smear on fast moves.
 
 - **2026-11-14** — **Style panel gets General / Cursor tabs (Mari's mockups).** Title "Style" and the tabs stay at the top; General = background, frame, shadow and "Reset style" (frame only); Cursor = a "Style" choice (Black / White / Dot), Size, Smoothing, Motion blur, Clicks, Hide when still, and "Reset cursor style" pinned at the bottom (cursor only). The cursor's on/off switch is gone, as in the mockup. Claude's calls: tabs only appear for recordings made in the app; the chosen tab is remembered while the project is open (also after visiting a clip or zoom). *Why:* Mari's request to organise the side panel.
@@ -191,6 +193,8 @@ Newest first. Each entry: date, decision, reason.
 ## Session log
 
 Newest first. One or two lines per session.
+
+- **2026-11-16** — Mari signed off P3, so phase 2 is done; docs updated. Committed; not pushed. Next: re-run the edge-case QA.
 
 - **2026-11-16** — P3 round 1: capped the motion blur streak (Mari's only request). New check; all checks pass; app rebuilt; frames of Mari's 10.36.42 recording checked (fast moves show a short soft arrow). Committed; not pushed.
 
@@ -263,7 +267,7 @@ Newest first. One or two lines per session.
 
 ## Open questions
 
-- **QA findings wait until phase 2 is done (Mari, 2026-11-14).** The edge-case QA report (`QA-REPORT.md` + `qa-screenshots/`) lives only on branch `refs/heads/claude/qa-edge-cases-7a3ac3` (`git show refs/heads/claude/qa-edge-cases-7a3ac3:QA-REPORT.md`). After P3, run the QA again on the finished app and fix everything then. Still open from it: how long videos handle small zooms (B1): Claude recommends a timeline zoom control plus a minimum on-screen width for zoom blocks.
+- **QA findings: phase 2 is done (2026-11-16), so this is next (Mari, 2026-11-14).** The edge-case QA report (`QA-REPORT.md` + `qa-screenshots/`) lives only on branch `refs/heads/claude/qa-edge-cases-7a3ac3` (`git show refs/heads/claude/qa-edge-cases-7a3ac3:QA-REPORT.md`). After P3, run the QA again on the finished app and fix everything then. Still open from it: how long videos handle small zooms (B1): Claude recommends a timeline zoom control plus a minimum on-screen width for zoom blocks.
 
 - **Autosave** is Maybe. Claude recommends building it into capture in phase 2, because it's cheap there.
 - **Edit by transcript and filler-word removal** are Future, but transcription is Never. They need a transcript, so revisit transcription if those move up.

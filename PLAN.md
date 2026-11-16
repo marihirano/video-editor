@@ -83,10 +83,10 @@ Before starting: install Xcode (free, from the App Store).
 - **P2. Cursor (built 2026-11-14, waiting for Mari's review):** draw the cursor from the log: smoothing, size, style, sharp cursor images, motion blur, click effects, idle hide
 
   **Try it:** open one of your recordings (or make a new one with clicks, typing and fast moves). In the Style panel, open the Cursor tab and try each style, size, smoothing, motion blur, click effect and "Hide when still". Add a cut, a 4× clip, a crop and a zoom and check the cursor stays on the right spot; then export.
-- **P3. Tuning:** rounds on real recordings until capture and the cursor feel right
+- **P3. Tuning (signed off 2026-11-16):** rounds on real recordings until capture and the cursor feel right. Fixed the Stop click's stray ripple and full-screen window recordings; shortened the motion blur on fast moves.
 
 Auto-zoom is dropped (Never, 2026-11-13). Cursor data is still recorded, because the cursor features need it.
 
 ## Next step
 
-The MVP, light mode and video shape are done. **P1 Capture is signed off (2026-11-14)** after Mari's real recordings and two feedback rounds. **P2 Cursor is signed off (2026-11-14).** **P3 Tuning is under way (2026-11-14):** first round of findings sent to Mari.
+The MVP, light mode and video shape are done. **P1 Capture is signed off (2026-11-14)** after Mari's real recordings and two feedback rounds. **P2 Cursor is signed off (2026-11-14).** **P3 Tuning is signed off (2026-11-16), so phase 2 is done.** Next: re-run the edge-case QA on the finished app (report on branch `claude/qa-edge-cases-7a3ac3`) and fix everything it finds.
