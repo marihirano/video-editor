@@ -121,6 +121,8 @@ node ~/design-project-drive/sweep.mjs add --type <type> --url <url> --label "<sh
 
 Newest first. Each entry: date, decision, reason.
 
+- **2026-11-16** — **Empty screen keeps its headline; the recording control's bin asks first (Mari).** "Record your screen, or drop a recording here" is back (the two smaller lines stay removed). Clicking the bin during a recording opens a "Delete this recording?" dialog with Cancel and Delete; the recording keeps running behind it, so Cancel loses nothing. During the countdown the bin still cancels at once (nothing is recorded yet). This reverses the 2026-11-14 "the bin deletes at once" call. *Why:* Mari's request.
+
 - **2026-11-16** — **Recording control matches the area card; empty screen loses its text (Mari).** The control's pale rim was the system's own window shadow, so that is off and the control draws the card's soft shadow instead; corners are 14 pt and the fill is the same as the card's (this replaces the 8 pt corners from earlier today). The empty first screen now shows only the icon and the two buttons: the headline, "MOV or MP4…" and the "Then: cut with the scissors…" lines are gone. Claude's call: the control's panel has 20 pt of padding for the shadow, so its placement is pulled back by 16 pt to keep the same visible gap. *Why:* Mari's request.
 
 - **2026-11-16** — **First screen: top-bar buttons hidden, drop area touches the top bar (Mari).** The bin, undo, redo, side-panel and Export buttons show only while a video is open; the dashed drop area has no gap above it (24 pt left, right and bottom stay). *Why:* the buttons did nothing there.

@@ -280,6 +280,15 @@ final class RecordingController: ObservableObject {
     /// Delete (the control's trash button, after its confirm): stops and keeps nothing.
     func deleteRecording() {
         guard phase == .recording || phase == .paused, let recorder else { return }
+        // Asks first (Mari, 2026-11-16). The recording carries on behind the question, so Cancel loses nothing.
+        NSApp.activate()
+        let alert = NSAlert()
+        alert.messageText = "Delete this recording?"
+        alert.informativeText = "What you've recorded so far will be thrown away. This can't be undone."
+        alert.addButton(withTitle: "Cancel")
+        alert.addButton(withTitle: "Delete").hasDestructiveAction = true
+        guard alert.runModal() == .alertSecondButtonReturn else { return }
+        guard phase == .recording || phase == .paused else { return }   // stopped in the meantime (shortcut)
         watcher?.stop()
         Task { await recorder.discard() }
         cleanUp()

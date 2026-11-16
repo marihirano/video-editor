@@ -1,7 +1,7 @@
 import AppKit
 import SwiftUI
 
-/// Shown when nothing is open: the app icon and the two ways in (no explanatory text, Mari 2026-11-16).
+/// Shown when nothing is open: the app icon, one line and the two ways in.
 struct EmptyStateView: View {
     @EnvironmentObject private var model: EditorModel
     @EnvironmentObject private var recorder: RecordingController
@@ -12,6 +12,8 @@ struct EmptyStateView: View {
             Image(nsImage: NSApp.applicationIconImage)
                 .resizable().frame(width: 96, height: 96)
                 .scaleEffect(isTargeted ? 1.08 : 1)
+            Text(isTargeted ? "Drop to open" : "Record your screen, or drop a recording here")
+                .font(Theme.fontLarge)
             HStack(spacing: Theme.s3) {
                 Button { recorder.showSetup() } label: { Label("Record Screen…", systemImage: "record.circle") }
                     .buttonStyle(PrimaryButtonStyle())
