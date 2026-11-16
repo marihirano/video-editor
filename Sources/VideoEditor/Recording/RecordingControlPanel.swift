@@ -62,9 +62,9 @@ private struct RecordingControlView: View {
         HStack(spacing: 0) {
             segment(help: "Stop and open the recording (\(GlobalHotKey.label))", action: rec.stop) {
                 HStack(spacing: Theme.s2) {
-                    Image(systemName: "stop.circle").font(.system(size: 20, weight: .light))
-                    Text(timeText).font(Theme.font(15).monospacedDigit())
-                        .frame(minWidth: 40, alignment: .leading)
+                    Image(systemName: "stop.circle").font(.system(size: 15, weight: .light))
+                    Text(timeText).font(Theme.fontBody.monospacedDigit())
+                        .frame(minWidth: 34, alignment: .leading)
                 }
                 .foregroundStyle(stopColor)
             }
@@ -72,19 +72,18 @@ private struct RecordingControlView: View {
             divider
             segment(help: rec.phase == .paused ? "Resume recording" : "Pause recording", action: rec.togglePause) {
                 Image(systemName: rec.phase == .paused ? "play.circle" : "pause.circle")
-                    .font(.system(size: 20, weight: .light))
+                    .font(.system(size: 15, weight: .light))
                     .foregroundStyle(isCountdown ? Color.white.opacity(0.35) : .white)
             }
             .disabled(isCountdown || busy)
             divider
             segment(help: isCountdown ? "Cancel" : "Delete this recording", action: deleteTapped) {
-                Image(systemName: "trash").font(.system(size: 18, weight: .light)).foregroundStyle(.white)
+                Image(systemName: "trash").font(.system(size: 15, weight: .light)).foregroundStyle(.white)
             }
             .disabled(busy)
         }
         .frame(height: 44)
-        .background(RoundedRectangle(cornerRadius: Theme.radiusPanel).fill(Color(white: 0.12)))
-        .overlay(RoundedRectangle(cornerRadius: Theme.radiusPanel).strokeBorder(Color.white.opacity(0.12)))
+        .background(RoundedRectangle(cornerRadius: 8).fill(Color(white: 0.12)))
         .fixedSize()
         .padding(Theme.s1)
     }
